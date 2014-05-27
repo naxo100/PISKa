@@ -1,4 +1,4 @@
-OPTIONS? = 
+OPTIONS? = -I /usr/local/lib/ocaml/ocamlmpi unix.cmxa mpi.cmxa str.cmxa -ccopt -L. -cclib -lmpich -cclib -lmpl -cclib -lopa
 ## see: http://www.ocaml.info/home/ocaml_sources.html#toc16
 
 ## put here the names of your source files (in the right order)
@@ -18,14 +18,17 @@ SOURCES = \
 		cflow/priority.ml \
 		cflow/cflow_handler.ml cflow/profiling.ml cflow/causal.ml  \
 		cflow/kappa_instantiation.ml cflow/po_cut.ml cflow/pseudo_inverse.ml cflow/blackboard_generation.ml cflow/blackboard.ml cflow/propagation_heuristics.ml \
-		cflow/generic_branch_and_cut_solver.ml cflow/dag.ml cflow/dag2.ml cflow/compression_main.ml  simulation/plot.ml Error/safe.ml simulation/run.ml \
+		cflow/generic_branch_and_cut_solver.ml cflow/dag.ml cflow/dag2.ml cflow/compression_main.ml  simulation/plot.ml Error/safe.ml \
+		dataStructures/linear.ml \
+		spatial/spatial_util.ml spatial/spatial_eval.ml spatial/transport.ml spatial/communication.ml spatial/quality.ml\
+		simulation/run.ml \
 		main/main.ml 
 
 ## the name of the resulting executable
 ifeq (Windows,$(findstring Windows,$(OS)))
-	RESULT = KaSim.exe
+	RESULT = PISKa.exe
 else
-	RESULT = KaSim
+	RESULT = PISKa
 endif
 
 ## generate type information (.annot files)
@@ -33,6 +36,9 @@ ANNOTATE = no
 
 ## make target (see manual) : byte-code, debug-code, native-code, ...
 all: native-code
+
+install:
+	cp -f PISKa /usr/bin/PISKa
 
 ##if ocamlopt.opt is not in your path, 
 ##uncomment the line below and set value below according to the location of your ocaml compilers 
@@ -43,9 +49,9 @@ all: native-code
 OCAMLCP = $(OCAMLBINPATH)ocamlcp
 OCAMLLEX = $(OCAMLBINPATH)ocamllex
 OCAMLYACC = $(OCAMLBINPATH)ocamlyacc
-OCAMLC = $(OCAMLBINPATH)ocamlc
-OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt $(OPTIONS) #-g -ccopt -g -ccopt -pg
-OCAMLDEP = $(OCAMLBINPATH)ocamldep
+OCAMLC = $(OCAMLBINPATH)ocamlc unix.cma mpi.cma -ccopt -L. -cclib -lmpich -cclib -lmpl -cclib -lopa
+OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I /usr/local/lib/ocaml/ocamlmpi unix.cmxa mpi.cmxa str.cmxa -ccopt -L. -cclib -lmpich -cclib -lmpl -cclib -lopa #-g -ccopt -g -ccopt -pg
+OCAMLDEP = $(OCAMLBINPATH)ocamldep unix.cma mpi.cma 
 CC = gcc
 
 include OCamlMakefile

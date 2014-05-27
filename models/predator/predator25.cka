@@ -1,0 +1,93 @@
+
+
+#VARIABLES
+%var: 'Preys' Prey(i,f~l)
+
+%var: 'Pred-H' Predator(feed~h?)
+%var: 'Pred-S' Predator(feed~s?)
+%var: 'Preds' 'Pred-H'+'Pred-S'
+
+
+%var: 'pred FEED' 0.0068 #0.01
+%var: 'pred UNFEED' 0.0005 #0.001
+
+%var: 'pred DIE'  1.06 #FIXED 0.616 by time to 100 P die** 0.75
+%var: 'prey DIE'  0.7 #FIXED by media = 1203
+
+%var: 'pred MIT' 1.5
+%var: 'prey MIT' 2.5 * ( 1 - 'Preys' / (50000 + ([int] ('Preys' / 49995) )*('Preys' - 49994) ) )
+
+%var: 'pred INIT' 27
+%var: 'prey INIT' 56
+
+%var: 'pred transport rate' 0.01 # 0.77 * 0.5 #0.032
+%var: 'prey transport rate' 0.001 # 0.4248 * 0.5 #56.5t
+
+
+
+#BOTTLES_5x5
+%compartment: 'bottle'[5][5]   1.0
+
+
+#LINKS
+%link: 'tubes' 'bottle'[x][y] <-> 'bottle'[x+1][y] $0.6
+%link: 'tubes' 'bottle'[x][y] <-> 'bottle'[x+1][y+1] $0.6
+%link: 'tubes' 'bottle'[x][y] <-> 'bottle'[x][y+1] $0.6
+
+
+
+
+#TRANSPORTS
+#%transport: 'tubes' Prey(i,f~l) @ 'prey transport rate'
+#%transport: 'tubes' Predator() @ 'pred transport rate'
+
+
+#AGENTS
+%agent: Predator(feed~h~s~d)
+%agent: Prey(i,f~l~d)
+
+
+#RULES
+'prey mitosis' Prey(i,f~l)  -> Prey(i,f~l),Prey(i,f~l) @ 'prey MIT' * 1
+
+'predation feed 1' Predator(feed~h),Prey(i,f~l) -> Predator(feed~h!1),Prey(i!1,f~d) @ 'pred FEED'
+'predation feed 2' Prey(i!_,f~d),		Prey(i,f~l) -> Prey(i!_,f~d!1),Prey(i!1,f~d) @ 'pred FEED'
+
+'predation stop feed' Predator(feed~h!1),Prey(i!1,f!2),Prey(i!2,f!3),Prey(i!3,f!4),Prey(i!4,f!5), \
+										Prey(i!5,f!6),Prey(i!6,f!7),Prey(i!7,f!8),Prey(i!8,f!9), \
+										Prey(i!9,f!10),Prey(i!10,f!11),Prey(i!11,f!12), \
+										Prey(i!12,f!13),Prey(i!13,f!14),Prey(i!14,f!15),Prey(i!15,f!16), \
+										Prey(i!16,f!17),Prey(i!17,f!18),Prey(i!18,f) \
+					-> Predator(feed~s) @* [inf]
+					
+'predator mitosis' Predator(feed~s) -> Predator(feed~h),Predator(feed~h) @ 'pred MIT'
+
+'predator unfeed' Prey(i!_,f~d!1),Prey(i!1,f~d) -> Prey(i!_,f~d) @ 'pred UNFEED'
+
+'prey die' Prey(f~l) -> @ 'prey DIE'
+
+'predator die 1' Predator(feed~h) -> @ 'pred DIE'*2
+'predator die 2' Predator(feed~s) -> @ 'pred DIE'/8
+'predator die 3' Predator(feed!_) -> @ 'pred DIE'
+'predator die 4' Prey(i,f~d?) -> @ [inf]
+
+
+#INITS
+
+%use: #'bottle'[0][0]
+%init: 'prey INIT' Prey()
+#%use: 'bottle'[0][0]
+%mod: [T] > 1 do $ADD 'pred INIT' Predator(feed~h)
+
+#OBSERVABLE
+%use: 
+%obs: 'oPredators' [log] ('Preds' / 30 + 1)
+%obs: 'oPreys' [log] ('Preys' / 30 + 1)
+
+#mpiexec -n 25 time ../../KaSim_nov/KaSim -i predator.cka -t 20 -p 1000 -sync-t 0.1 -d out/ -seed 1
+
+
+
+
+
+

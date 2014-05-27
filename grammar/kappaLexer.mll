@@ -27,7 +27,7 @@
 	let loc = Printf.sprintf "line %d, character %d:" lnum cnum in
 	let full_msg = Printf.sprintf "Error (%s) %s %s" fn loc msg 
 	in
-	Printf.eprintf "%s\n" full_msg ; exit 1 
+	Printf.eprintf "%s\n" full_msg ; raise (Mpi.Error "MPI process aborted by parsing exception.") ; exit 1 
 			
  let position lexbuf = 
 	let pos = lexbuf.lex_curr_p in
@@ -39,7 +39,8 @@ let integer = (['0'-'9']+)
 let real = 
   (((['0'-'9']+ | ['0'-'9']+ '.' ['0'-'9']*) | (['0'-'9']* '.' ['0'-'9']+)) ((['e' 'E'] ['+' '-'] ['0'-'9']+) | (['e' 'E'] ['0'-'9']+))) 
   | ((['0'-'9']+ '.' ['0'-'9']*) | (['0'-'9']* '.' ['0'-'9']+))   
-let id = (['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_' '-' '+']*)
+let id = (['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_' (***)(*'-' '+'*)]*)
+(***)let name = (['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '_']*)
 let internal_state = '~' (['0'-'9' 'a'-'z' 'A'-'Z']+)
 let pert = '$' id
 	
@@ -68,33 +69,30 @@ rule token = parse
 									| "$PRINT" -> (PRINT pos)
 									| "$PRINTF" -> (PRINTF pos)
 									| s -> return_error None lexbuf ("Perturbation effect \""^s^"\" is not defined")
-					 			}  
-		| '[' {let lab = read_label "" [']'] lexbuf in 
-						let pos = position lexbuf in 
-							match lab with
-								| "E" -> EVENT pos
-								| "E+" -> PROD_EVENT pos
-								| "E-" -> NULL_EVENT pos
-								| "T" -> TIME pos
-								| "Tsim" -> CPUTIME pos
-								| "log" -> LOG pos
-								| "sin" -> SINUS pos
-								| "cos" -> COSINUS pos
-								| "tan" -> TAN pos
-								| "exp" -> EXPONENT pos
-								| "int" -> ABS pos
-								| "mod" -> MODULO pos
-								| "sqrt" -> SQRT pos
-								| "inf" -> INFINITY pos
-								| "true" -> TRUE pos
-								| "false" -> FALSE pos
-								| "pi" -> FLOAT (3.14159265,pos)
-								| "max" -> MAX pos
-								| "min" -> MIN pos
-								| "Emax" -> EMAX pos
-								| "Tmax" -> TMAX pos
-								| _ as s -> return_error None lexbuf ("Symbol \""^s^"\" is not defined")
-						}  
+					 			}
+(***)
+			| "[" blank* "E" blank* "]" { EVENT (position lexbuf)}
+			| "[" blank* "E+" blank* "]" { PROD_EVENT (position lexbuf)}
+			| "[" blank* "E-" blank* "]" { NULL_EVENT (position lexbuf)}
+			| "[" blank* "T" blank* "]" { TIME (position lexbuf)}
+			| "[" blank* "Tsim" blank* "]" { CPUTIME (position lexbuf)}
+			| "[" blank* "log" blank* "]" { LOG (position lexbuf)}
+			| "[" blank* "sin" blank* "]" { SINUS (position lexbuf)}
+			| "[" blank* "cos" blank* "]" { COSINUS (position lexbuf)}
+			| "[" blank* "tan" blank* "]" { TAN (position lexbuf)}
+			| "[" blank* "exp" blank* "]" { EXPONENT (position lexbuf)}
+			| "[" blank* "int" blank* "]" { ABS (position lexbuf)}
+			| "[" blank* "mod" blank* "]" { MODULO (position lexbuf)}
+			| "[" blank* "sqrt" blank* "]" { SQRT (position lexbuf)}
+			| "[" blank* "inf" blank* "]" { INFINITY (position lexbuf)}
+			| "[" blank* "true" blank* "]" { TRUE (position lexbuf)}
+			| "[" blank* "false" blank* "]" { FALSE (position lexbuf)}
+			| "[" blank* "pi" blank* "]" { FLOAT (3.14159265,(position lexbuf))}
+			| "[" blank* "max" blank* "]" { MAX (position lexbuf) }
+			| "[" blank* "min" blank* "]" { MAX (position lexbuf) }
+			| "[" blank* "Emax" blank* "]" { EMAX (position lexbuf)}
+			| "[" blank* "Tmax" blank* "]" { TMAX (position lexbuf)}
+(***)
 		| ':' {TYPE}
 		| ';' {SEMICOLON}
 		| '\"' {let str = read_label "" ['\"'] lexbuf in let pos = position lexbuf in STRING (str,pos)}
@@ -105,6 +103,12 @@ rule token = parse
     | real as f {let pos = position lexbuf in FLOAT (float_of_string f,pos)}
     | '\'' {let lab = read_label "" ['\''] lexbuf in let pos = position lexbuf in LABEL(lab,pos)}
     | id as str {let pos = position lexbuf in ID(str,pos)}
+(***)
+	| '[' {OP_BRA}
+	| ']' {CL_BRA}
+	| "@*" {FIX}
+	| '$' {ATD}
+(***)
     | '@' {AT}
     | ',' {COMMA}
     | '(' {OP_PAR}
@@ -132,6 +136,12 @@ rule token = parse
 								| "obs" -> (OBS pos)
 								| "def" -> (CONFIG pos)
 								| "token" -> (TOKEN pos)
+(***)
+								| "compartment" -> (COMPARTMENT pos)
+ 								| "link"		-> (C_LINK pos)
+ 								| "transport"	-> (TRANSPORT pos)
+ 								| "use"			-> (USE pos)
+(***)
 								| _ as s -> return_error None lexbuf ("Instruction \""^s^"\" not recognized")
 					 } 
 		| '!' {let pos = position lexbuf in KAPPA_LNK pos}

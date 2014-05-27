@@ -3,6 +3,7 @@ open Mixture
 open Dynamics
 open Tools
 open Ast
+(***)open Mpi
 
 type context =
 	{ pairing : link IntMap.t; curr_id : int; new_edges : (int * int) Int2Map.t
@@ -711,7 +712,8 @@ let rule_of_ast ?(backwards=false) env (ast_rule_label, ast_rule) tolerate_new_s
 			Dynamics.modif_sites = modif_sites ;
 			Dynamics.is_pert = false ;
 			Dynamics.pre_causal = pre_causal ;
-			Dynamics.cc_impact = Some (connect_impact,disconnect_impact,side_eff_impact)  
+			Dynamics.cc_impact = Some (connect_impact,disconnect_impact,side_eff_impact);
+(***)		Dynamics.transport_to = ast_rule.Ast.transport_to;
 		})
 
 let variables_of_result env res =
@@ -967,7 +969,9 @@ let pert_of_result variables env res =
 									Dynamics.modif_sites = modif_sites ;
 									Dynamics.is_pert = true ;
 									Dynamics.pre_causal = pre_causal ;
-									Dynamics.cc_impact = None 
+									Dynamics.cc_impact = None ;
+									
+(***)								Dynamics.transport_to = None
 								}
 								in
 								(env,(Some rule,effect)::rule_list,cpt+1)
@@ -1009,6 +1013,8 @@ let pert_of_result variables env res =
 									Dynamics.pre_causal = pre_causal ;
 									Dynamics.is_pert = true ;
 									Dynamics.cc_impact = None ;
+									
+(***)								Dynamics.transport_to = None
 								}
 								in
 								(env,(Some rule,effect)::rule_list,cpt+1)
@@ -1213,47 +1219,53 @@ let configurations_of_result result =
 				Parameter.showIntroEvents
 			| _ as error -> raise (ExceptionDefn.Semantics_Error (pos_p,Printf.sprintf "Unkown parameter %s" error))		  
 	) result.configurations 
-	
+
+(*** Commented debugs *)
 let initialize result counter =
-	Debug.tag "+ Compiling..." ;
-	Debug.tag "\t -simulation parameters" ;
+	(*Debug.tag "+ Compiling..." ;
+	Debug.tag "\t -simulation parameters" ;*)
 	let _ = configurations_of_result result in
 
-	Debug.tag "\t -agent signatures" ;
+	(*Debug.tag "\t -agent signatures" ;*)
 	let env = environment_of_result result in
 	
-	Debug.tag "\t -variable declarations";
+	(*Debug.tag "\t -variable declarations";*)
 	let (env, kappa_vars, alg_vars) = variables_of_result env result in
 	
-	Debug.tag "\t -initial conditions";
+	(*Debug.tag "\t -initial conditions";*)
 	let sg,token_vector,env = init_graph_of_result env result
 	in
 	
 	let tolerate_new_state = !Parameter.implicitSignature in
 	Parameter.implicitSignature := false ;
 
-	Debug.tag "\t -rules";
+	(*Debug.tag "\t -rules";*)
 	let (env, rules) = rules_of_result env result tolerate_new_state in
 	
-	Debug.tag "\t -observables";
+	(*Debug.tag "\t -observables";*)
 	let observables = obs_of_result env result in
-	Debug.tag "\t -perturbations" ;
+	(*Debug.tag "\t -perturbations" ;*)
 	let (kappa_vars, pert, rule_pert, env) = pert_of_result kappa_vars env result
 	in
-	Debug.tag "\t Done";
-	Debug.tag "+ Analyzing non local patterns..." ;
+	(*Debug.tag "\t Done";
+	Debug.tag "+ Analyzing non local patterns..." ;*)
 	let env = Environment.init_roots_of_nl_rules env in
-	Debug.tag "+ Building initial simulation state...";
-	Debug.tag "\t -Counting initial local patterns..." ;
+	(*Debug.tag "+ Building initial simulation state...";
+	Debug.tag "\t -Counting initial local patterns..." ;*)
 	let (state, env) =
 	State.initialize sg token_vector rules kappa_vars alg_vars observables (pert,rule_pert) counter env
 	in
 	let state =  
 		if env.Environment.has_intra then
 			begin
-				Debug.tag "\t -Counting initial non local patterns..." ;
+				(*Debug.tag "\t -Counting initial non local patterns..." ;*)
 				NonLocal.initialize_embeddings state counter env
 			end
 		else state
 	in
-	(Debug.tag "\t Done"; (env, state))
+	(
+		(*Debug.tag "\t Done";*) 
+		(env, state)
+	)
+	
+

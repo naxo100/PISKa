@@ -5,7 +5,7 @@ open Dynamics
 open Graph
 open ValMap
 open Random_tree
-
+(***)open Mpi
 
 type implicit_state =
 	{ graph : SiteGraph.t;
@@ -21,7 +21,9 @@ type implicit_state =
 		mutable activity_tree : Random_tree.tree; 
 		wake_up : Precondition.t ;
 		flux : (int,float IntMap.t) Hashtbl.t ;
-		mutable silenced : IntSet.t (*Set of rule ids such that eval-activity was overestimated and whose activity was manually set to a lower value*) 
+		mutable silenced : IntSet.t; (*Set of rule ids such that eval-activity was overestimated and whose activity was manually set to a lower value*) 
+(***)	(*(comp,cnum)	,	agent	, Q	, late-sum, times *)
+(***)	mutable transports: ( (string * int) , (string , (int * float * float list)) Hashtbl.t ) Hashtbl.t
 	}
 and component_injections = (InjectionHeap.t option) array
 and obs = { label : string; expr : Dynamics.variable }
@@ -488,7 +490,8 @@ let initialize sg token_vector rules kappa_vars alg_vars obs (pert,rule_pert) co
 			influence_map = influence_table ;
 			wake_up = wake_up_table;
 			flux = if !Parameter.fluxModeOn then Hashtbl.create 5 else Hashtbl.create 0 ;
-			silenced = IntSet.empty
+			silenced = IntSet.empty;
+			(***)transports = Hashtbl.create 10
 		}
 	in
 	

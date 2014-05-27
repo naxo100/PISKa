@@ -53,6 +53,20 @@ and link =
 	| LNK_SOME of Tools.pos
 	| LNK_TYPE of str_pos * str_pos
 
+(***)
+type index_term =
+		INT_I of int * Tools.pos
+	|	NAME of string * Tools.pos
+	| 	MULT_I of index_term * index_term * Tools.pos
+	|	SUM_I of index_term * index_term * Tools.pos
+	| 	DIV_I of index_term * index_term * Tools.pos
+	| 	MINUS_I of index_term * index_term * Tools.pos
+	| 	POW_I of index_term * index_term * Tools.pos
+	| 	MODULO_I of index_term * index_term * Tools.pos
+
+type index_expr = (index_term) list
+(***)
+
 type rule = {
 	rule_pos: Tools.pos ; 
 	lhs: mixture ; 
@@ -63,6 +77,11 @@ type rule = {
 	k_def:alg_expr ; 
 	k_un:(alg_expr * alg_expr option) option ; (*k_1:radius_opt*)
 	k_op: alg_expr option ; (*rate for backward rule*)
+	(***)	
+	transport_to: ((string * int) * float ) option;
+	use_id: int;
+	fixed: bool;
+	(***)
 	}
 	
 and arrow = RAR of Tools.pos | LRAR of Tools.pos
@@ -112,6 +131,22 @@ type instruction =
 	| PLOT of alg_expr
 	| PERT of perturbation
 	| CONFIG of configuration
+(***)
+	| COMPART of comp_t
+	| C_LNK of clink_t
+	| TRANSP of transp_t
+	| USE_C of ((string * Tools.pos) * index_expr) list
+and comp_t =
+	( (string * Tools.pos) * index_expr ) * alg_expr * Tools.pos
+and clink_t =
+	(string * Tools.pos) * ((string * Tools.pos) * index_expr) * 
+							arrow * 
+							((string * Tools.pos) * index_expr) * alg_expr * Tools.pos
+and nodepair_expr =
+	((string * Tools.pos) * index_expr) * ((string * Tools.pos) * index_expr) * bool * float * Tools.pos
+and transp_t =
+	(string * Tools.pos) * mixture * alg_expr * Tools.pos
+(***)
 and init_t = 
 	| INIT_MIX of  alg_expr * mixture 
 	| INIT_TOK of  alg_expr * str_pos 
@@ -127,10 +162,39 @@ type compil = {variables : variable list; (*pattern declaration for reusing as v
 							 perturbations : perturbation list ;
 							 configurations : configuration list ;
 							 tokens :  str_pos list ;
-							 volumes : (str_pos * float * str_pos) list
+							 (*volumes : (str_pos * float * str_pos) list;*)
+							 (***SPATIAL**)
+							 volume :			alg_expr;
+							 dims: 		int list;
+							 (***)
 							 }
+(*
 let result:compil ref = ref {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = []; volumes=[]} 
-let init_compil = fun _ -> result := {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = [] ; volumes=[]}
+let init_compil = fun _ -> result := {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = [] ; volumes=[]}*)
+
+
+type compil_glob = {compartments: (string, index_expr * alg_expr * Tools.pos) Hashtbl.t;
+					init_g 		: (str_pos option * init_t * Tools.pos * (int) ) list ;
+					variables_g :	(variable * (int) ) list;
+					links		: (string , nodepair_expr)  Hashtbl.t;
+
+					rules_g		: (rule_label * rule) list ;
+					transports	: (str_pos * mixture * alg_expr * Tools.pos) list ;
+					
+					use_expressions : ( (str_pos * index_expr) list option) list;
+					(*mutable fresh_use_id: int;*)
+					
+					
+					signatures_g 	:	(agent * Tools.pos) list ;
+					observables_g 	: 	alg_expr list ; (*list of patterns to plot*) 
+					perturbations_g : 	(perturbation * int ) list ;
+					configurations_g: 	configuration list ;
+					tokens_g 		: 	str_pos list;
+					(*volumes_g		:	(str_pos * float * str_pos * (int) ) list;*)
+				}
+
+let result_glob:compil_glob ref = ref {compartments=Hashtbl.create 10; links=Hashtbl.create 10; transports=[]; rules_g=[]; observables_g = []; perturbations_g = []; configurations_g = []; use_expressions = []; init_g=[]; variables_g=[]; signatures_g=[]; tokens_g=[];(*volumes_g=[];*) } 
+let init_compil_glob = fun _ -> result_glob := {compartments=Hashtbl.create 10; links=Hashtbl.create 10; transports=[]; rules_g=[]; observables_g = []; perturbations_g = []; configurations_g = []; use_expressions = []; init_g=[]; variables_g=[]; signatures_g=[]; tokens_g=[];(*volumes_g=[];*)}
 
 (*
 let reverse res = 

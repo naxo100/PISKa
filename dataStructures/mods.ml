@@ -279,7 +279,14 @@ module Counter =
 			max_events : int option ;
 			dE : int option ;
 			dT : float option ;
-			mutable stop : bool
+			mutable stop : bool;
+			
+			(** **)
+			mutable sync_count : int ;
+			mutable need_sync: bool;
+			mutable next_sync_at: float;
+			mutable sync_time : float;
+			(** **)
 			}
 
 		let stop c = c.stop
@@ -303,6 +310,21 @@ module Counter =
 		let last_tick c = c.last_tick
 		let set_tick c (i,x) = c.last_tick <- (i,x)
 		
+		(** **)
+		let need_sync c = c.need_sync
+		let check_last_sync c = match c.max_time with 
+			| None -> false 
+			| Some max -> c.sync_time *. (float_of_int (c.sync_count-1)) < max
+		let inc_sync c = 
+			c.sync_count <- c.sync_count + 1;
+			c.need_sync <- false;
+			c.next_sync_at <- c.next_sync_at +. c.sync_time 
+		let get_sync_count c = c.sync_count
+		let set_need_sync c value = c.need_sync <- value
+		let set_synctime c value = c.sync_time <- value
+		let get_next_synctime c = c.next_sync_at (*c.sync_time *. (float_of_int c.sync_count)*)
+		let set_finish_time c = c.time <- match c.max_time with | None -> 0.0 | Some t -> t
+		(** **)
 		let last_increment c = let _,t = c.last_tick in (c.time -. t) 
 		
 		let compute_dT () = 
@@ -329,10 +351,10 @@ module Counter =
 				if not counter.initialized then
 					let c = ref !Parameter.progressBarSize in
 						while !c > 0 do
-							print_string "_" ;
+							(***)if (Mpi.comm_rank Mpi.comm_world) = 0 then print_string "_" ;
 							c:=!c-1
 						done ;
-						print_newline() ; 
+						(***)if (Mpi.comm_rank Mpi.comm_world) = 0 then print_newline() ;
 						counter.initialized <- true ; 
 			and last_event,last_time = counter.last_tick
 			in
@@ -355,7 +377,7 @@ module Counter =
 					let n = ref (max n_t n_e) in
 						if !n>0 then set_tick counter (event,time) ;
 						while !n > 0 do
-							Printf.printf "%c" !Parameter.progressBarSymbol ;
+							(*** Printf.printf "%c" !Parameter.progressBarSymbol ;*)
 							if !Parameter.eclipseMode then print_newline() ;
 							inc_tick counter ;
 							n:=!n-1 
@@ -364,7 +386,7 @@ module Counter =
 	                                          
 	 	let stat_null i c = try c.stat_null.(i) <- c.stat_null.(i) + 1 with exn -> invalid_arg "Invalid null event identifier"
               
-		let create init_t init_e mx_t mx_e = 
+		(***)let create init_t init_e mx_t mx_e sync_t = 
 			let dE = compute_dE() in
 				let dT = match dE with None -> compute_dT() | Some _ -> None
 				in
@@ -384,7 +406,14 @@ module Counter =
 				init_event = init_e ;
 				initialized = false ;
 				ticks = 0 ;
-				stop = false
+				stop = false;
+								
+				(***)
+				sync_time = sync_t;
+				need_sync = false;
+				sync_count = 1;
+				next_sync_at = sync_t
+				(***)
 				}
 		
 	end

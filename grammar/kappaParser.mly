@@ -2,18 +2,20 @@
 %}
 
 %token EOF NEWLINE SEMICOLON
-%token AT OP_PAR CL_PAR COMMA DOT TYPE LAR OP_CUR CL_CUR 
+%token AT ATD FIX OP_PAR CL_PAR OP_BRA CL_BRA COMMA DOT TYPE LAR OP_CUR CL_CUR
 %token <Tools.pos> LOG PLUS MULT MINUS AND OR GREATER SMALLER EQUAL PERT INTRO DELETE DO SET UNTIL TRUE FALSE OBS KAPPA_RAR TRACK CPUTIME CONFIG REPEAT DIFF
 %token <Tools.pos> KAPPA_WLD KAPPA_SEMI SIGNATURE INFINITY TIME EVENT NULL_EVENT PROD_EVENT INIT LET DIV PLOT SINUS COSINUS TAN SQRT EXPONENT POW ABS MODULO 
-%token <Tools.pos> EMAX TMAX FLUX ASSIGN ASSIGN2 TOKEN KAPPA_LNK PIPE KAPPA_LRAR PRINT PRINTF MAX MIN
+%token <Tools.pos> EMAX TMAX FLUX ASSIGN ASSIGN2 TOKEN KAPPA_LNK PIPE KAPPA_LRAR PRINT PRINTF /*CAT VOLUME*/ MAX MIN
 %token <int*Tools.pos> INT 
-%token <string*Tools.pos> ID LABEL KAPPA_MRK  
+%token <string*Tools.pos> ID LABEL KAPPA_MRK NAME
 %token <float*Tools.pos> FLOAT 
 %token <string*Tools.pos> STRING
 %token <Tools.pos> STOP SNAPSHOT
 
-%left MINUS PLUS MIN MAX 
-%left MULT DIV 
+%token <Tools.pos> COMPARTMENT C_LINK TRANSPORT USE
+
+%left MINUS PLUS MIN MAX
+%left MULT DIV 10 
 %left MODULO
 %right POW 
 %nonassoc LOG SQRT EXPONENT SINUS COSINUS ABS TAN
@@ -37,38 +39,86 @@ start_rule:
 | newline
   {$1}
 | rule_expression newline
-	{let rule_label,r = $1 in Ast.result := {!Ast.result with Ast.rules = (rule_label,r)::!Ast.result.Ast.rules} ; $2}
+	{let rule_label,r = $1 in Ast.result_glob := 
+ 		{!Ast.result_glob with Ast.rules_g = 
+ 			(rule_label,{r with Ast.use_id = List.length !Ast.result_glob.Ast.use_expressions})::!Ast.result_glob.Ast.rules_g} ; $2}
 | instruction newline 
 	{
 		let inst = $1 in
 		begin 
 			match inst with
 				| Ast.SIG (ag,pos) -> 
-						(Ast.result:={!Ast.result with 
-						Ast.signatures=(ag,pos)::!Ast.result.Ast.signatures}
+						(Ast.result_glob:={!Ast.result_glob with 
+ 						Ast.signatures_g=(ag,pos)::!Ast.result_glob.Ast.signatures_g}
 						)
 				| Ast.TOKENSIG (str,pos) -> 
-						(Ast.result:={!Ast.result with 
-						Ast.tokens=(str,pos)::!Ast.result.Ast.tokens}
+						(Ast.result_glob:={!Ast.result_glob with 
+ 						Ast.tokens_g=(str,pos)::!Ast.result_glob.Ast.tokens_g}
 						)
-				| Ast.VOLSIG (vol_type,vol,vol_param) -> 
-					(Ast.result := {!Ast.result with Ast.volumes=(vol_type,vol,vol_param)::!Ast.result.Ast.volumes})
-				| Ast.INIT (opt_vol,init_t,pos) -> (Ast.result := {!Ast.result with Ast.init=(opt_vol,init_t,pos)::!Ast.result.Ast.init})
+				(*| Ast.VOLSIG (vol_type,vol,vol_param) -> (Ast.result_glob := {
+					!Ast.result_glob with 
+						Ast.volumes_g=
+							(vol_type,vol,vol_param,List.length !Ast.result_glob.Ast.use_expressions)::!Ast.result_glob.Ast.volumes_g})*)
+				| Ast.INIT (opt_vol,init_t,pos) -> (Ast.result_glob := {
+					!Ast.result_glob with 
+						Ast.init_g=
+						(opt_vol,init_t,pos,List.length !Ast.result_glob.Ast.use_expressions)::!Ast.result_glob.Ast.init_g})
 				| Ast.DECLARE var ->
-					(Ast.result := {!Ast.result with Ast.variables = var::!Ast.result.Ast.variables})
+					(Ast.result_glob := 
+						{!Ast.result_glob with 
+							Ast.variables_g = !Ast.result_glob.Ast.variables_g @ [var,List.length !Ast.result_glob.Ast.use_expressions]}
+					)
 				| Ast.OBS var -> (*for backward compatibility, shortcut for %var + %plot*)
 					let expr =
 						match var with
 							| Ast.VAR_KAPPA (_,lab) -> Ast.OBS_VAR lab 
 							| Ast.VAR_ALG (_,lab) -> Ast.OBS_VAR lab
 					in					 
-					(Ast.result := {!Ast.result with Ast.variables = var::!Ast.result.Ast.variables ; Ast.observables = expr::!Ast.result.Ast.observables})
+					(Ast.result_glob := {!Ast.result_glob with 
+						Ast.variables_g = !Ast.result_glob.Ast.variables_g @ [var,List.length !Ast.result_glob.Ast.use_expressions] ; 
+						Ast.observables_g = expr::!Ast.result_glob.Ast.observables_g}
+					)
 				| Ast.PLOT expr ->
-					(Ast.result := {!Ast.result with Ast.observables = expr::!Ast.result.Ast.observables})
+					(Ast.result_glob := {!Ast.result_glob with Ast.observables_g = expr::!Ast.result_glob.Ast.observables_g})
 				| Ast.PERT (pre,effect,pos,opt) ->
-					(Ast.result := {!Ast.result with Ast.perturbations = (pre,effect,pos,opt)::!Ast.result.Ast.perturbations})
+					(Ast.result_glob := {!Ast.result_glob with 
+						Ast.perturbations_g = 
+							((pre,effect,pos,opt),List.length !Ast.result_glob.Ast.use_expressions)::!Ast.result_glob.Ast.perturbations_g})
 				| Ast.CONFIG (param_name,value_list) ->
-					(Ast.result := {!Ast.result with Ast.configurations = (param_name,value_list)::!Ast.result.Ast.configurations})
+					(Ast.result_glob := {!Ast.result_glob with 
+						Ast.configurations_g = (param_name,value_list)::!Ast.result_glob.Ast.configurations_g})
+				| Ast.COMPART comp	-> (Ast.result_glob := {
+					!Ast.result_glob with 
+						Ast.compartments = 
+						let ((name, _), index), exp, pos = comp
+						in (*TODO error doble declaracion*)
+							Hashtbl.add !Ast.result_glob.Ast.compartments name (index,exp,pos);
+							!Ast.result_glob.Ast.compartments
+					})
+				| Ast.C_LNK link	-> (Ast.result_glob := {
+					!Ast.result_glob
+						with Ast.links = 
+							let ( (nom,pos1), orig, arrow, dest, time , pos) = link in
+							let float_time = match time with
+								|Ast.FLOAT(x,p) -> x
+								|Ast.INT (i,p) -> float_of_int i
+								| _ -> raise (ExceptionDefn.Syntax_Error (Some pos1,"Travel time can only be constant int or float."))
+							in
+							let is_bidirectional = match arrow with |Ast.RAR _ -> false | Ast.LRAR _ -> true in
+							Hashtbl.add !Ast.result_glob.Ast.links nom (orig,dest,is_bidirectional,float_time,pos);
+
+							!Ast.result_glob.Ast.links
+					})				
+				| Ast.TRANSP transp	-> (
+					Ast.result_glob := 
+						{!Ast.result_glob with Ast.transports = transp::!Ast.result_glob.Ast.transports})
+				| Ast.USE_C c_selected	-> (
+					Ast.result_glob := {!Ast.result_glob with Ast.use_expressions = 
+						let comp = match c_selected with
+							| [] -> None
+							| selected_list -> Some selected_list
+						in !Ast.result_glob.Ast.use_expressions @ [comp]
+					})
 		end ; $2 
 	}
 | error 
@@ -76,18 +126,31 @@ start_rule:
 ;
 
 instruction:
+ /* */
+ 
+ | COMPARTMENT comp_expr alg_expr
+ 	{Ast.COMPART ($2,$3,$1)}
+ | C_LINK LABEL comp_expr arrow comp_expr ATD constant
+ 	{Ast.C_LNK ($2,$3,$4,$5,$7,$1)}
+ | TRANSPORT LABEL mixture AT alg_expr
+ 	{Ast.TRANSP ($2,$3,$5,$1)}
+ | USE comp_list
+ 	{Ast.USE_C ($2)}
+ 	
+ 
+ /* */
 | SIGNATURE agent_expression  
 	{Ast.SIG ($2,$1)}
 | TOKEN ID
 	{let str,pos = $2 in Ast.TOKENSIG (str,pos)}
+/*| VOLUME ID volume_param 
+	{let vol,param = $3 in Ast.VOLSIG ($2,vol,param)}*/
 | SIGNATURE error
 	{raise (ExceptionDefn.Syntax_Error (Some $1,"Malformed agent signature, I was expecting something of the form '%agent: A(x,y~u~v,z)'"))}
-	
 | INIT init_declaration 
 	{let (opt_vol,init) = $2 in Ast.INIT (opt_vol,init,$1)}
 | INIT error
  {let pos = $1 in raise (ExceptionDefn.Syntax_Error (Some pos,"Malformed initial condition"))}
-
 | LET variable_declaration 
 	{Ast.DECLARE $2}
 | OBS variable_declaration
@@ -108,7 +171,7 @@ instruction:
 	 then (ExceptionDefn.warning ~with_pos:$1 "Perturbation need not be applied repeatedly") ;
 	Ast.PERT (bool_expr,mod_expr_list,pos,Some $5)}
 | CONFIG STRING value_list 
-	{Ast.CONFIG ($2,$3)} 
+	{Ast.CONFIG ($2,$3)}  
 | PERT bool_expr DO effect_list UNTIL bool_expr /*for backward compatibility*/
 	{ExceptionDefn.warning ~with_pos:$1 "Deprecated perturbation syntax: use the 'repeat ... until' construction" ; 
 	Ast.PERT ($2,$4,$1,Some $6)}
@@ -121,11 +184,66 @@ init_declaration:
 | ID OP_CUR init_declaration CL_CUR {let _,init = $3 in (Some $1,init)}
 ;
 
+/*(*volume_param:
+| OP_CUR FLOAT CL_CUR opt_param {let f,_ = $2 in (f,$4)}
+| OP_CUR INT CL_CUR opt_param {let n,_ = $2 in (float_of_int n,$4)}
+;
+
+opt_param:
+| (*empty*) {("passive",Tools.no_pos)}
+| ID {$1}
+*)*/
+
+/*SPATIAL*/
+comp_expr: LABEL dimension
+	{$1,$2}
+;
+
+dimension: 
+	/*empty*/
+	{[]}
+|	OP_BRA index_expr CL_BRA dimension
+	{$2 :: $4}
+;
+
+index_expr:
+	INT
+	{let i,p = $1 in Ast.INT_I(i,p)}
+|	ID /*iter var*/
+	{let n,p = $1 in Ast.NAME(n,p)}
+|	OP_PAR index_expr CL_PAR 
+	{$2}
+| 	index_expr MULT index_expr
+	{Ast.MULT_I ($1,$3,$2)}
+|	index_expr PLUS index_expr
+	{Ast.SUM_I ($1,$3,$2)}
+| 	index_expr DIV index_expr
+	{Ast.DIV_I ($1,$3,$2)}
+| 	index_expr MINUS index_expr
+	{Ast.MINUS_I ($1,$3,$2)}
+| 	index_expr POW index_expr
+	{Ast.POW_I ($1,$3,$2)}
+| 	index_expr MODULO index_expr
+	{Ast.MODULO_I ($1,$3,$2)}	
+;
+
 value_list: 
 | STRING 
 	{[$1]}
 | STRING value_list 
 	{$1::$2}
+;
+
+comp_list:
+		{[]}
+	| '$ALL'
+	  	{[]}
+	| comp_expr
+		{[$1]}
+	| comp_expr comp_list
+		{$1::$2}
+	| comp_expr COMMA comp_list
+		{$1::$3}
 ;
 
 perturbation_declaration:
@@ -143,7 +261,7 @@ effect_list:
 effect:
 | LABEL ASSIGN alg_expr /*updating the rate of a rule -backward compatibility*/
 	{let _ = ExceptionDefn.warning ~with_pos:$2 "Deprecated syntax, use $UPDATE perturbation instead of the ':=' assignment (see Manual)" in 
-	 Ast.UPDATE ($1,$3)}
+	Ast.UPDATE ($1,$3)}
 | ASSIGN2 LABEL alg_expr /*updating the rate of a rule*/
 	{Ast.UPDATE ($2,$3)}
 | TRACK LABEL boolean 
@@ -284,8 +402,16 @@ mixture:
 	{$1}
 ;
 
+/*(**  **)*/
+
+rate_sep:
+| AT {false}
+| FIX {true}
+
+/*(**  **)*/
+
 rule_expression:
-| rule_label lhs_rhs arrow lhs_rhs AT rate 
+| rule_label lhs_rhs arrow lhs_rhs rate_sep rate 
 	{ let pos = match $3 with Ast.RAR pos | Ast.LRAR pos -> pos in
 		let (k2,k1,kback) = $6 in
 		let _ =
@@ -294,21 +420,35 @@ rule_expression:
 				| _ -> ()
 		in
 		let lhs,token_l = $2 and rhs,token_r = $4 in 
-		($1,{Ast.rule_pos = pos ; Ast.lhs=lhs; Ast.rm_token = token_l ; Ast.arrow=$3; Ast.rhs=rhs; Ast.add_token = token_r; Ast.k_def=k2; Ast.k_un=k1; Ast.k_op=kback})
+		($1,{Ast.rule_pos = pos ;
+			Ast.lhs=lhs; 
+			Ast.rm_token = token_l ; 
+			Ast.arrow=$3; 
+			Ast.rhs=rhs; 
+			Ast.add_token = token_r; 
+			Ast.k_def=k2; 
+			Ast.k_un=k1; 
+			Ast.k_op=kback; 
+			Ast.use_id = -1; 
+			Ast.transport_to = None; 
+			Ast.fixed = $5})
 	}
 | rule_label lhs_rhs arrow lhs_rhs 
 	{let pos = match $3 with Ast.RAR pos | Ast.LRAR pos -> pos in
 	let lhs,token_l = $2 and rhs,token_r = $4 in 
 		ExceptionDefn.warning ~with_pos:pos "Rule has no kinetics. Default rate of 0.0 is assumed." ; 
 		($1,{Ast.rule_pos = pos ;
-		     Ast.lhs = lhs; 
-				 Ast.rm_token = token_l; 
-				 Ast.arrow=$3; 
-				 Ast.rhs=rhs; 
-				 Ast.add_token = token_r; 
-				 Ast.k_def=Ast.FLOAT (0.0,Tools.no_pos); 
-				 Ast.k_un=None ;
-				 Ast.k_op=None})}
+		 Ast.lhs=lhs; 
+		 Ast.rm_token = token_l; 
+		 Ast.arrow=$3; 
+		 Ast.rhs=rhs; 
+		 Ast.add_token = token_r; 
+		 Ast.k_def=Ast.FLOAT (0.0,Tools.no_pos); 
+		 Ast.k_un=None ;
+		 Ast.k_op=None; 
+		 Ast.use_id = -1; 
+		 Ast.transport_to = None; Ast.fixed = true })
+	}
 ;
 
 arrow:
