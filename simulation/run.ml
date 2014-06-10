@@ -280,7 +280,7 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 			"State:\n\trules.size() = %d\n\tperturbations.size() = %d\n\tk_vars.size() = %d\n\tinfluence_map.size() = %d" 
 			(Hashtbl.length state.State.rules) (IntMap.size state.State.perturbations) 
 			(Array.length state.State.kappa_variables) (Hashtbl.length state.State.influence_map)
-					) *)
+					); *)
 				);
 				(**FIX NEW TIMER HERE**)
 				let pre_activity_list = Quality.activity_list state counter env in
@@ -291,11 +291,12 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 				
 				(* Get perturbations from received transport Data*)
 				let pert_list, rule_list, env = Transport.perts_of_transports transport_messages counter env in
-				if List.length pert_list = 0 then
-					(Counter.inc_sync counter;
+				if List.length pert_list = 0 then (
+					Counter.inc_sync counter;
 					let total_error = Mpi.reduce_float 0.0 Mpi.Float_sum 0 comm_world in
 					if (comm_rank comm_world) = 0 then Debug.tag ("Total error: "^(string_of_float total_error));
-					state,story_profiling,event_list,env)
+					state,story_profiling,event_list,env
+				)
 				else
 					let perts = 
 						List.fold_left (fun (perts) (p_id,pert) ->

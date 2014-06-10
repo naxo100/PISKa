@@ -6,8 +6,8 @@ let activity_list state counter env =
 	let total_activity = Random_tree.total state.State.activity_tree in
 	Hashtbl.fold
 	(fun i r l ->
-		let a2,a1  = State.eval_activity r state counter env in
 		if Environment.is_rule i env then
+		let a2,a1  = State.eval_activity r state counter env in
 			l @ [Random_tree.find i state.State.activity_tree]
 		else l
 	) state.State.rules [total_activity]

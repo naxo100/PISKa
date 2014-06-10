@@ -107,6 +107,11 @@ let trigger_effect state env pert_ids tracked pert_events pert p_id eff eval_var
 							n := !n-1 ;
 							tracked := tracked'
 						done ;
+						(***)
+						(match pert.Dynamics.abort with 
+							| None -> Hashtbl.remove (!st).State.rules r.Dynamics.r_id
+							| _ -> ());
+						(***)
 						(!envr,!st,!pert_ids,!tracked,!pert_events)
 			| (Some r,DELETE (v,mix)) ->
 				let mix_id = Mixture.get_id mix in
