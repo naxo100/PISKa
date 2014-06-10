@@ -11,9 +11,9 @@ open Communication
 
 (***)
 
-let version = "0.1"
+let version = "1.0"
 
-let usage_msg = "PISKa "^version^" (based on KaSim version 3.1-191112): \n"^"Usage is $ [mpirun* -np n_comparts] PISKa -i input_file [-e events] -t time [-p points] -sync-t s_time\n" (*^ "process number:"^(string_of_int myrank)*)
+let usage_msg = "PISKa "^version^" (based on KaSim version 3.5-160514): \n"^"Usage is $ [mpirun* -np n_comparts] PISKa -i input_file [-e events] -t time [-p points] -sync-t s_time\n" (*^ "process number:"^(string_of_int myrank)*)
 let version_msg = "Parallel Spatial Kappa Simulator: "^version^" (based on KaSim version 3.1-191112)\n"
 
 let close_desc opt_env =
