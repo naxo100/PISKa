@@ -346,11 +346,12 @@ let try_perturbate tracked state pert_ids pert_events counter env =
 									if !Parameter.debugModeOn then Debug.tag (Printf.sprintf "\n*************Applying perturbation %d***************" pert_id) ; 
 									let env,state,pert_ids,tracked,pert_events = apply_effect pert_id pert tracked pert_events state counter env in
 									if !Parameter.debugModeOn then Debug.tag "************End perturbation*************" ;
-									let state,env = 
+									let state,env = (***)
 										if eval_abort_pert true pert state counter env then 
 											(if !Parameter.debugModeOn then Debug.tag (Printf.sprintf "***Aborting pert[%d]***" pert_id) ;
-											({state with perturbations = IntMap.remove pert_id state.perturbations},env) )
-										else
+											({state with perturbations = IntMap.remove pert_id state.perturbations},
+											  Environment.remove_dependencies Mods.TIME (Mods.PERT pert_id) env ))
+										else(***)
 											begin
 												if !Parameter.debugModeOn then Debug.tag "************Maintaining perturbation*************" ; 
 												(state,env)

@@ -48,7 +48,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 				State.snapshot state counter desc true env
 			else () ;
 			(***)(*raise Deadlock*)
-		end ; 
+		end ;
 	Plot.fill state counter plot env dt ; 
 	Counter.inc_time counter dt ;
 	
@@ -68,7 +68,6 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 			| Some t -> (Counter.stat_null 5 counter ; true)
 			| None -> false
 	in
-		
 	(*2. Draw rule*)
 	if !Parameter.debugModeOn then Debug.tag (Printf.sprintf "Drawing a rule... (activity=%f) " (Random_tree.total state.State.activity_tree));
 	(*let t_draw = Profiling.start_chrono () in*)
@@ -102,7 +101,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 				(*** Creation of transporting Message **)
 				(match r.Dynamics.transport_to with 
 					| None -> ()
-					| Some (comp,travel_t) -> (
+					| Some (comp,travel_t) ->
 						(*Debug.tag (Printf.sprintf "%d:transportando hacia %d \t %s %f" (comm_rank comm_world) (Hashtbl.find comp_map comp) r.Dynamics.kappa travel_t);*)
 						let roots = match embedding_t with 
 							| State.DISJOINT emb | State.CONNEX emb | State.AMBIGUOUS emb -> 
@@ -138,18 +137,16 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 							arrival_list := !arrival_list @ [arrive_time]
 						);
 						Hashtbl.replace comp_table kappa_cmpx (!late_count,!late_sum,!arrival_list);
-						Hashtbl.replace state.State.transports comp comp_table
-					)
+						Hashtbl.replace state.State.transports comp comp_table;
 				);
 				(********************************************)
 				state,try Some (State.apply state r embedding_t counter env,r) 
-				with Null_event _ -> Debug.tag "Wrong!";None
+				with Null_event _ -> None
 				(***)
 	
 	in
 	
 	(*4. Positive update*)
-	
 	let env,state,pert_ids,story_profiling,event_list = 
 		match opt_new_state with
 			| Some ((env,state,side_effect,embedding_t,psi,pert_ids_rule),r) ->
@@ -223,7 +220,6 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 				
 	in
 	
-	
 	(*Applying perturbation if any*)
 	let state,env,obs_from_perturbation,pert_events,_ = 
 		External.try_perturbate obs_from_perturbation state pert_ids pert_events counter env 
@@ -266,7 +262,6 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 	let state,env,_,_,_ = External.try_perturbate [] state pert_ids [] counter env 
 	(***)in let max_id_pert = ref (IntMap.size state.State.perturbations)
 	in
-	
 	let rec iter state story_profiling event_list counter plot env =
 		(***)
 		if !Parameter.debugModeOn && is_main() then 
@@ -274,21 +269,23 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 		let state,story_profiling,event_list,env =
 			(** Begin-Sinchronize **)	
 			if (Counter.need_sync counter) then begin
-				(if is_main() then 
+				(if is_main() then begin
 					Debug.tag (Printf.sprintf "Sincronizando %d" (Counter.get_sync_count counter));
 					(*Debug.tag (Printf.sprintf 
-			"State:\n\trules.size() = %d\n\tperturbations.size() = %d\n\tk_vars.size() = %d\n\tinfluence_map.size() = %d" 
-			(Hashtbl.length state.State.rules) (IntMap.size state.State.perturbations) 
-			(Array.length state.State.kappa_variables) (Hashtbl.length state.State.influence_map)
-					); *)
-				);
+						("State:\n\trules.size() = %d\n\tperturbations.size() = %d\n\tkappa_vars.size() = %d\n
+						\tinfluence_map.size() = %d\n\talg_vars.size() = %d\n\tflux.size() = %d\n\ttransp.size() = %d\n") 
+						(Hashtbl.length state.State.rules) (IntMap.size state.State.perturbations) 
+						(Array.length state.State.kappa_variables) (Hashtbl.length state.State.influence_map)
+						(Array.length state.State.alg_variables) (Hashtbl.length state.State.flux)
+						(Hashtbl.length state.State.transports)
+					);*) 
+				end);
 				(**FIX NEW TIMER HERE**)
 				let pre_activity_list = Quality.activity_list state counter env in
 				(*barrier comm_world;*)
 				
 				(*gather Data*)
 				let transport_messages = Communication.transport_synchronize comp_map comp_name state.State.transports in
-				
 				(* Get perturbations from received transport Data*)
 				let pert_list, rule_list, env = Transport.perts_of_transports transport_messages counter env in
 				if List.length pert_list = 0 then (

@@ -40,5 +40,40 @@ let string_of_comp ?(dims_opt) (cname,cnum) =
 			in cname ^ "["^(String.concat "][" (List.rev_map string_of_int (List.rev indexlist)))^"]"
 			
 let is_main () = (Mpi.comm_rank Mpi.comm_world) = 0
+
+let identity a = a
 			
+let time_table = ref (Hashtbl.create 10)
+
+let start_timer tag =
+	Hashtbl.add !time_table tag (Unix.gettimeofday())
+
+let stop_timer tag =
+	let start = Hashtbl.find !time_table tag in
+	let interval = (Unix.gettimeofday ()) -. start in
+	Hashtbl.replace !time_table tag interval;
+	interval
+
+let stop_sum_timer tag =
+	let start = Hashtbl.find !time_table tag in
+	let interval = (Unix.gettimeofday ()) -. start in
+	Hashtbl.remove !time_table tag;
+	let sum = try Hashtbl.find !time_table tag with Not_found -> 0.0 in
+	Hashtbl.replace !time_table tag (interval+.sum);
+	interval
+	
+let show_timer () =
+	let curr_lab = ref "" in
+	Hashtbl.iter (fun label time ->
+		if label = !curr_lab then
+			Printf.printf "\t%f" time
+		else
+			(curr_lab := label; Printf.printf "\n%s\t%f" label time)
+	)
+	!time_table;
+	Debug.tag "\n";
+	
+
+
+
 
