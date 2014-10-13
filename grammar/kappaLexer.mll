@@ -108,6 +108,8 @@ rule token = parse
 	| ']' {CL_BRA}
 	| "@*" {FIX}
 	| '$' {ATD}
+	| "<move-free>" {FREE}
+	| "<move-join>" {JOIN}
 (***)
     | '@' {AT}
     | ',' {COMMA}

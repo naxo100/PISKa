@@ -3,12 +3,14 @@ open Tools
 open Ast
 
 	
-let agents_of_complex root env =
-	let hsh_lnk = Hashtbl.create 10 in
+let agents_of_complex sg emb env =
+	let roots = match emb with State.CONNEX e | State.DISJOINT e | State.AMBIGUOUS e -> e.State.roots in
+	let root = Graph.SiteGraph.node_of_id sg (IntSet.choose roots)
+	and hsh_lnk = Hashtbl.create 10 in
 	let rec iter_graph node fresh visited_list =
-		if List.mem (Node.get_address node) visited_list then (
+		if List.mem (Node.get_address node) visited_list then 
 			(*Debug.tag ((string_of_list string_of_int visited_list) ^ " # " ^ (string_of_int (Node.get_address node)));*)
-			[],fresh,visited_list)
+			([],fresh,visited_list)
 		else
 			let visited = Node.get_address node :: visited_list 
 			and kappa_ag,fresh' = Node.to_string false (hsh_lnk,fresh) node env in
@@ -25,6 +27,24 @@ let agents_of_complex root env =
 				) ([kappa_ag],fresh',visited) (Node.interface node)	
 	in iter_graph root 1 []
 
+let agents_of_script script sg emb env =
+	let hsh_lnk = Hashtbl.create 10
+	and phi = State.map_of emb in
+	let rec iter script agents fresh =
+	match script with
+	| [] -> 
+		agents
+	| action :: script' ->
+		match action with
+		| Dynamics.DEL i ->
+			let phi_i =
+				(try IntMap.find i phi	with Not_found ->	invalid_arg "Transport.apply: incomplete embedding 3") 
+			in
+				let node_i = Graph.SiteGraph.node_of_id sg phi_i in
+				let kappa_ag,fresh' = Node.to_string false (hsh_lnk,fresh) node_i env
+				in iter script' (kappa_ag :: agents) fresh'
+		| _ -> Debug.tag "Error in transport"; exit 1
+	in iter script [] 1
 
 let string_to_astmixt s =
 	let agents = Str.split (Str.regexp ";") s in
@@ -69,24 +89,20 @@ let pert_of_transport_string agent_str num arr_time counter from env =
 		num (Mixture.to_kappa false agent env) arr_time (Counter.get_sync_count counter) from in
 	(*Debug.tag (Printf.sprintf "%d: %s"  (Mpi.comm_rank Mpi.comm_world) (Mixture.to_kappa false agent env));*)
 	let env,p_id = Environment.declare_pert (str_pert,Tools.no_pos) env in
-	(*Debug.tag ((string_of_int (comm_rank comm_world)) ^ "a") ;*)
 	let (env, id) =	Environment.declare_var_kappa None env in
 	let lhs = Mixture.empty (Some id) in
 	let r_id = Mixture.get_id lhs in
 	let (script,balance,added,modif_sites) = 
 		Dynamics.diff Tools.no_pos lhs agent (Some (str_pert,Tools.no_pos)) env in
 	let dep = DepSet.singleton Mods.TIME in
-	(*Debug.tag ((string_of_int (comm_rank comm_world)) ^ "k") ;*)
 	(*let env = Environment.declare_rule (Some (str_pert,Tools.no_pos)) r_id env in*)
 	
-	(*Debug.tag ((string_of_int (comm_rank comm_world)) ^ "b") ;*)
 	let env =
 		DepSet.fold (fun dep env -> 
 			Environment.add_dependencies dep (Mods.PERT p_id) env
 		) dep env 
 	in
 	
-	(*Debug.tag ((string_of_int (comm_rank comm_world)) ^ "c") ;*)
 	let pre_causal = Dynamics.compute_causal lhs agent script env in 
 	let rule = 
 		{
@@ -183,9 +199,84 @@ let perts_of_transports transports counter env =
 	) (0,[],[],env) transports
 	in pert_list,rule_list,env
 
+let apply_transport_effects state r kappa_cmpx counter env comp_map = 
+	match r.Dynamics.transport_to with 
+	| Some (comp,travel_t,joined) ->
+		(*Debug.tag (Printf.sprintf "%d:transportando hacia %d \t %s %f" (Mpi.comm_rank Mpi.comm_world) (Hashtbl.find comp_map comp) r.Dynamics.kappa travel_t);
+		Debug.tag kappa_cmpx;*)
+		(* Add transporting complex to struct of transports*)
+		let comp_table = (*Find destination compartment entry*)
+			try Hashtbl.find state.State.transports comp
+			with Not_found -> 
+				Hashtbl.add state.State.transports comp (Hashtbl.create 5);
+				Hashtbl.find state.State.transports comp
+		in 
+		let late_count,late_sum,arrival_list = ( (*find complex entry*)
+			let lc,ls,al = 
+			try Hashtbl.find comp_table kappa_cmpx
+			with Not_found -> 
+				Hashtbl.add comp_table kappa_cmpx (0,0.0,[]);
+				Hashtbl.find comp_table kappa_cmpx
+			in ref lc, ref ls, ref al
+		) in
+		let arrive_time = (Counter.time counter) +. travel_t in
+		(* late transport *)
+		if arrive_time < (Counter.get_next_synctime counter) then
+			let late_time = (Counter.get_next_synctime counter) -. arrive_time in 
+			late_count :=  !late_count + 1;
+			late_sum := !late_sum +. late_time
+		else( (*not late*)
+			arrival_list := !arrival_list @ [arrive_time]
+		);
+		Hashtbl.replace comp_table kappa_cmpx (!late_count,!late_sum,!arrival_list);
+		Hashtbl.replace state.State.transports comp comp_table;
+		state
+	| None -> state
+
+
+let apply state (r,(comp,travel,joined)) embedding_t counter env comp_map =
+	let r,kappa_cmpx = 
+	if joined then
+		let kappa_list,_,node_list = agents_of_complex (state.State.graph) embedding_t env in
+		let new_script = List.fold_right (fun id sc -> (Dynamics.DEL id) :: sc) node_list []
+		in {r with Dynamics.script = new_script},String.concat ";" kappa_list
+	else
+		let kappa_list = agents_of_script r.Dynamics.script state.State.graph embedding_t env 
+		in r,String.concat ";" kappa_list
+	in
+	(*Debug.tag (kappa_cmpx);*)
+	let rec edit state script psi side_effects pert_ids env =
+		(* phi: embedding, psi: fresh map *)
+		let sg = state.State.graph
+		and phi = State.map_of embedding_t
+		in
+		match script with
+		| [] -> 
+			let state = apply_transport_effects state r kappa_cmpx counter env comp_map
+			in (env,state, (side_effects:Int2Set.t), embedding_t, psi, pert_ids)
+		| action :: script' ->
+			match action with
+			| Dynamics.DEL i ->
+				let phi_i =
+					if joined then
+						i
+					else
+						(try IntMap.find i phi	with Not_found ->	invalid_arg "Transport.apply: incomplete embedding 3") 
+				in
+					let node_i = Graph.SiteGraph.node_of_id sg phi_i in
+					let env,side_effects,pert_ids = State.delete state r.Dynamics.r_id node_i side_effects pert_ids counter env
+					in
+					Graph.SiteGraph.remove sg phi_i;
+					(*let hsh_lnk = Hashtbl.create 10 in
+					let kappa,_ = Node.to_string false (hsh_lnk,1) node_i env in
+					Debug.tag ("removing "^ kappa );*)
+					edit state script' psi side_effects pert_ids env
+			| _ -> Debug.tag "Error in transport"; exit 1
+	in edit state r.Dynamics.script IntMap.empty Int2Set.empty IntSet.empty env
 
 
 
+	
 	
 	
 

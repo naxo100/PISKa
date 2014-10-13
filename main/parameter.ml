@@ -77,6 +77,7 @@ let (timeIncrementValue:float option ref) = ref None
 (***)
 let (syncTime:float ref) = ref 1.0
 let (syncMode:string option ref)= ref None
+let (showProgressStep:int option ref) = ref None
 (***)
 
 let cpuTime = ref 0.0

@@ -40,7 +40,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 		(state,story_profiling,event_list,env)
 	)
 	else begin
-	(***)
+	(*** begin of else-1 *)
 	if dt = infinity || activity = 0. then 
 		begin
 			if !Parameter.dumpIfDeadlocked then	
@@ -79,9 +79,9 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 	in			
 	
 	(*3. Apply rule & negative update*)
-	let (***)state,opt_new_state =
+	let opt_new_state =
 		match opt_instance with
-			| None -> (***)state,None
+			| None -> None
 			| Some (r,embedding_t) ->
 				(**********************************************)
 				if !Parameter.debugModeOn then 
@@ -98,51 +98,17 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 					Debug.tag (Printf.sprintf "%s" (string_of_map string_of_int string_of_int IntMap.fold embedding)) 
 				end
 				else () ;
-				(*** Creation of transporting Message **)
-				(match r.Dynamics.transport_to with 
-					| None -> ()
-					| Some (comp,travel_t) ->
-						(*Debug.tag (Printf.sprintf "%d:transportando hacia %d \t %s %f" (comm_rank comm_world) (Hashtbl.find comp_map comp) r.Dynamics.kappa travel_t);*)
-						let roots = match embedding_t with 
-							| State.DISJOINT emb | State.CONNEX emb | State.AMBIGUOUS emb -> 
-								emb.State.roots
-						in
-						let root = (Graph.SiteGraph.node_of_id state.State.graph (IntSet.choose roots)) in 
-						(* from root of complex obtain all struct in a string*)
-						let kappa_list,_,_ = Transport.agents_of_complex root env in
-						let kappa_cmpx = String.concat ";" kappa_list in
-						
-						(* Add transporting complex to struct of transports*)
-						let comp_table = (*Find destination compartment entry*)
-							try Hashtbl.find state.State.transports comp
-							with Not_found -> 
-								Hashtbl.add state.State.transports comp (Hashtbl.create 5);
-								Hashtbl.find state.State.transports comp
-						in 
-						let late_count,late_sum,arrival_list = ( (*find complex entry*)
-							let lc,ls,al = 
-							try Hashtbl.find comp_table kappa_cmpx
-							with Not_found -> 
-								Hashtbl.add comp_table kappa_cmpx (0,0.0,[]);
-								Hashtbl.find comp_table kappa_cmpx
-							in ref lc, ref ls, ref al
-						) in
-						let arrive_time = (Counter.time counter) +. travel_t in
-						(* late transport *)
-						if arrive_time < (Counter.get_next_synctime counter) then
-							let late_time = (Counter.get_next_synctime counter) -. arrive_time in 
-							late_count :=  !late_count + 1;
-							late_sum := !late_sum +. late_time
-						else( (*not late*)
-							arrival_list := !arrival_list @ [arrive_time]
-						);
-						Hashtbl.replace comp_table kappa_cmpx (!late_count,!late_sum,!arrival_list);
-						Hashtbl.replace state.State.transports comp comp_table;
-				);
 				(********************************************)
-				state,try Some (State.apply state r embedding_t counter env,r) 
-				with Null_event _ -> None
 				(***)
+				try let new_state = 
+				(match r.Dynamics.transport_to with 
+				| Some transport_info ->
+					Transport.apply state (r,transport_info) embedding_t counter env comp_map 
+				| None ->
+	 				State.apply state r embedding_t counter env )
+	 			in Some (new_state,r)
+	 			with Null_event _ -> None
+	 			(***)
 	
 	in
 	
@@ -150,7 +116,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 	let env,state,pert_ids,story_profiling,event_list = 
 		match opt_new_state with
 			| Some ((env,state,side_effect,embedding_t,psi,pert_ids_rule),r) ->
-
+				
 				Counter.inc_events counter ;
 				counter.Counter.cons_null_events <- 0 ; (*resetting consecutive null event counter since a real rule was applied*)  
 				let env,pert_ids = State.update_dep state (-1) Mods.EVENT (IntSet.union pert_ids_rule pert_ids_time) counter env in
@@ -248,7 +214,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 		in 
 		counter.Counter.perturbation_events <- cpt ;
 		(state,story_profiling,event_list,env)
-		(***)end
+	(*** end of else-1 *)end
  						
 let loop state story_profiling event_list counter plot env (***)comp_name comp_map =
 	(*Before entering the loop*)
@@ -268,30 +234,27 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 			Debug.tag (Printf.sprintf "[**Event %d (Activity %f)**]" counter.Counter.events (Random_tree.total state.State.activity_tree));
 		let state,story_profiling,event_list,env =
 			(** Begin-Sinchronize **)	
-			if (Counter.need_sync counter) then begin
-				(if is_main() then begin
-					Debug.tag (Printf.sprintf "Sincronizando %d" (Counter.get_sync_count counter));
-					(*Debug.tag (Printf.sprintf 
-						("State:\n\trules.size() = %d\n\tperturbations.size() = %d\n\tkappa_vars.size() = %d\n
-						\tinfluence_map.size() = %d\n\talg_vars.size() = %d\n\tflux.size() = %d\n\ttransp.size() = %d\n") 
-						(Hashtbl.length state.State.rules) (IntMap.size state.State.perturbations) 
-						(Array.length state.State.kappa_variables) (Hashtbl.length state.State.influence_map)
-						(Array.length state.State.alg_variables) (Hashtbl.length state.State.flux)
-						(Hashtbl.length state.State.transports)
-					);*) 
-				end);
+			if (Counter.need_sync counter) || not ( (Counter.check_time counter) && (Counter.check_events counter) && 
+					not (Counter.stop counter) && (Counter.check_last_sync counter ) ) then begin
 				(**FIX NEW TIMER HERE**)
 				let pre_activity_list = Quality.activity_list state counter env in
 				(*barrier comm_world;*)
 				
 				(*gather Data*)
-				let transport_messages = Communication.transport_synchronize comp_map comp_name state.State.transports in
+				let transport_messages = Communication.transport_synchronize comp_map comp_name state.State.transports
+				and total_counter_array = Communication.total_counter_synchronize counter in
+				
+				if Counter.show_progress counter && is_main() then
+					Debug.tag (Printf.sprintf "Synchronization %d\n\tSimulated-Time:\t%f\tEvents:\t%d\n\tTotal-Sync-Error:\t%f" 
+							(Counter.get_sync_count counter) (Counter.time counter) (total_counter_array.(0)) 
+							(Spatial_util.sum_floatlist !Quality.syncErrors));
+				
 				(* Get perturbations from received transport Data*)
 				let pert_list, rule_list, env = Transport.perts_of_transports transport_messages counter env in
 				if List.length pert_list = 0 then (
 					Counter.inc_sync counter;
 					let total_error = Mpi.reduce_float 0.0 Mpi.Float_sum 0 comm_world in
-					if (comm_rank comm_world) = 0 then Debug.tag ("Total error: "^(string_of_float total_error));
+					if (comm_rank comm_world) = 0 then Quality.syncErrors := total_error :: !Quality.syncErrors;
 					state,story_profiling,event_list,env
 				)
 				else
@@ -308,21 +271,21 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 						) (state.State.rules, Hashtbl.length state.State.rules) rule_list
 					in
 					let state = {state with State.rules=rules; State.perturbations = perts}
-					(*and env = Environment.init_roots_of_nl_rules env*)  in
-					let dt = (Counter.get_next_synctime counter) -. (Counter.time counter)
+					(*and env = Environment.init_roots_of_nl_rules env in
+					let dt = (Counter.get_next_synctime counter) -. (Counter.time counter)*)
 					in counter.Counter.time <- Counter.get_next_synctime counter ;
 					let state,env = Communication.update_state state env counter in
 					let env,pert_ids_time = State.update_dep state (-1) Mods.TIME IntSet.empty counter env in
 					let state,env,obs,events,_ =
 						External.try_perturbate [] state pert_ids_time [] counter env 
 					in (
-						counter.Counter.perturbation_events <- Counter.event counter ;
+						(*counter.Counter.perturbation_events <- Counter.event counter ;*)
 						let post_activity_list = Quality.activity_list state counter env
 						and delay = Quality.average_delay transport_messages in
 						let error = Quality.transport_error pre_activity_list post_activity_list delay in
 						let total_error = Mpi.reduce_float error Mpi.Float_sum 0 comm_world in
 						if (comm_rank comm_world) = 0 then 
-							Debug.tag ("Total error: "^(string_of_float total_error));
+							Quality.syncErrors := total_error :: !Quality.syncErrors;
 						
 						Counter.inc_sync counter;
 						state,story_profiling,event_list,env

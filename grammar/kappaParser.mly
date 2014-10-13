@@ -2,7 +2,7 @@
 %}
 
 %token EOF NEWLINE SEMICOLON
-%token AT ATD FIX OP_PAR CL_PAR OP_BRA CL_BRA COMMA DOT TYPE LAR OP_CUR CL_CUR
+%token AT ATD FIX OP_PAR CL_PAR OP_BRA CL_BRA COMMA DOT TYPE LAR OP_CUR CL_CUR JOIN FREE
 %token <Tools.pos> LOG PLUS MULT MINUS AND OR GREATER SMALLER EQUAL PERT INTRO DELETE DO SET UNTIL TRUE FALSE OBS KAPPA_RAR TRACK CPUTIME CONFIG REPEAT DIFF
 %token <Tools.pos> KAPPA_WLD KAPPA_SEMI SIGNATURE INFINITY TIME EVENT NULL_EVENT PROD_EVENT INIT LET DIV PLOT SINUS COSINUS TAN SQRT EXPONENT POW ABS MODULO 
 %token <Tools.pos> EMAX TMAX FLUX ASSIGN ASSIGN2 TOKEN KAPPA_LNK PIPE KAPPA_LRAR PRINT PRINTF /*CAT VOLUME*/ MAX MIN
@@ -90,7 +90,7 @@ start_rule:
 				| Ast.COMPART comp	-> (Ast.result_glob := {
 					!Ast.result_glob with 
 						Ast.compartments = 
-						let ((name, _), index), exp, pos = comp
+						let ((name, _), index,_), exp, pos = comp
 						in (*TODO error doble declaracion*)
 							Hashtbl.add !Ast.result_glob.Ast.compartments name (index,exp,pos);
 							!Ast.result_glob.Ast.compartments
@@ -132,8 +132,8 @@ instruction:
  	{Ast.COMPART ($2,$3,$1)}
  | C_LINK LABEL comp_expr arrow comp_expr ATD constant
  	{Ast.C_LNK ($2,$3,$4,$5,$7,$1)}
- | TRANSPORT LABEL mixture AT alg_expr
- 	{Ast.TRANSP ($2,$3,$5,$1)}
+ | TRANSPORT join LABEL mixture AT alg_expr
+ 	{Ast.TRANSP ($3,$4,$6,$2,$1)}
  | USE comp_list
  	{Ast.USE_C ($2)}
  	
@@ -195,8 +195,16 @@ opt_param:
 *)*/
 
 /*SPATIAL*/
-comp_expr: LABEL dimension
-	{$1,$2}
+join:
+	/*empty*/
+	{true}
+|	JOIN
+	{true}
+|	FREE
+	{false}
+
+comp_expr: LABEL dimension where_expr
+	{$1,$2,$3}
 ;
 
 dimension: 
@@ -244,6 +252,13 @@ comp_list:
 		{$1::$2}
 	| comp_expr COMMA comp_list
 		{$1::$3}
+;
+
+where_expr: 
+	/* empty */
+		{None}
+	| OP_CUR bool_expr CL_CUR
+		{Some $2}
 ;
 
 perturbation_declaration:
@@ -495,6 +510,8 @@ alg_expr:
 	{$1}
 | variable
 	{$1}
+| ID
+	{Ast.OBS_VAR $1}
 | alg_expr MULT alg_expr
 	{Ast.MULT ($1,$3,$2)}
 | alg_expr PLUS alg_expr

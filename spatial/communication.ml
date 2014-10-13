@@ -89,6 +89,18 @@ let transport_synchronize comp_map comp_id transports =
 		| GATHER -> synch_gather comp_map comp_id transports
 		| _ -> exit 1
 
+let local_counter_array counter =
+	[| counter.Counter.events ;
+		counter.Counter.null_events ; 
+		counter.Counter.cons_null_events ;
+		counter.Counter.perturbation_events ; 
+		counter.Counter.null_action |]
+
+let total_counter_synchronize counter =
+	let data_array = local_counter_array counter in
+	allreduce_int_array data_array counter.Counter.total_events Mpi.Int_sum comm_world;
+	counter.Counter.total_events
+
 
 let propagate_error ex_msg =
 	match get_syncmode with

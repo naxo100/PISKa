@@ -105,7 +105,7 @@ let partial_eval_index ?(vars=[]) ?(dim=None) index =
  * ([-1],string list) if expression can not be evaluated.
  * string list contain all literals encountered in evaluation, without repeats.
  * If dimensions of compartment is given as 'dims', raise Semantic_error on
- * expressions that out of bounds.
+ * expressions that are out of bounds.
  *)
 let rec partial_eval_indexlist ?(vars=[]) ?(dims=[]) indexlist =
 	let r_indexlist,r_vars = 
@@ -219,16 +219,36 @@ let solve (a_inv,b0,at_opt) (cell,dims) =
 		| None -> b_aux 
 	in Array.to_list (Linear.trans (Linear.mul a_inv b)).(0)
 			
-		
+(** Validate restriction of variables in a comp_expr
+ * and returns true if the compartment meets conditions *)		
+let validate cond_opt vars =
+	match cond_opt with
+		| Some condition ->
+			let env,vid_list = List.fold_left (fun (env,v_id_map) (name,value) ->
+				let env,v_id = Environment.declare_var_alg (Some (name,Tools.no_pos)) (Some (Mods.Num.I value)) env
+				in env,(v_id,value) :: v_id_map
+			) (Environment.empty,[]) vars in
+			let ( f_val , const, _ , str_val , _ ) = Eval.partial_eval_bool env condition
+			and v_of_id = (fun id -> Mods.Num.I (List.assoc id vid_list) )
+			and f = (fun _ -> Mods.Num.I 0) 
+			in f_val f v_of_id 0. 0 0 0. f
+			(*in
+			Debug.tag str_val;
+			Debug.tag (Tools.string_of_list (fun (a,b) -> a^" -> "^(string_of_int b) ) vars);
+			if value then Debug.tag "true" else Debug.tag "false"; value*)
+		| None ->
+			true
+	
+
 		
 (** ?((string * int) list) -> index_expr list -> int list -> int list
  * Returns a list with all cells that match with the expression and
  * var values.
 *)
-let index_expr_to_cells ?(vars_values=[]) indexlist_expr dims =
+let index_expr_to_cells ?(vars_values=[]) indexlist_expr cond dims =
 	let size = List.fold_right (fun d t -> d*t) dims 1
 	and expr_dim = List.length indexlist_expr in
-	try 
+	try
 	let indexlist,var_order = partial_eval_indexlist ~vars:vars_values ~dims:dims indexlist_expr in
 	let (some_cells,is_solved,_,_,_) = List.fold_right (fun d (cell_list,solve_expr,indexlist,exprlist,cum) ->
 		match indexlist,exprlist with
@@ -269,14 +289,17 @@ let index_expr_to_cells ?(vars_values=[]) indexlist_expr dims =
 			List.for_all (fun flt -> flt = ceil flt) solved
 			&&
 			let new_vars_values = List.combine var_order (List.map (fun flt -> int_of_float(flt)) solved) in
-				List.for_all (fun (vname,value) -> 
-					try (List.assoc vname vars_values) = value
-					with Not_found -> true
-				) new_vars_values
-				&&
-				try let eval_index,_ = (partial_eval_indexlist indexlist_expr ~vars:(new_vars_values @ vars_values) ~dims:dims )
-					in eval_index = (cell_to_indexlist cell dims)
-				with ExceptionDefn.Semantics_Error (pos,s) -> false
+			(* Validate restriction of vars *)
+			validate cond new_vars_values
+			&&
+			List.for_all (fun (vname,value) -> 
+				try (List.assoc vname vars_values) = value
+				with Not_found -> true
+			) new_vars_values
+			&&
+			try let eval_index,_ = (partial_eval_indexlist indexlist_expr ~vars:(new_vars_values @ vars_values) ~dims:dims )
+				in eval_index = (cell_to_indexlist cell dims)
+			with ExceptionDefn.Semantics_Error (pos,s) -> false
 		) some_cells
 	with ExceptionDefn.Semantics_Error (pos,s) -> []
 
@@ -310,7 +333,7 @@ let eval_compartments compartments =
  * return the list of compartments linked to (cname,cell) *)
 let eval_links compartments links =
 	Hashtbl.fold (fun lname 
-			( ((c1 , pos_c1) , index_expr1) , ((c2 , pos_c2) , index_expr2) , is_bidirectional , time , pos ) links ->
+			( ((c1 , pos_c1) , index_expr1, cond1) , ((c2 , pos_c2) , index_expr2, cond2) , is_bidirectional , time , pos ) links ->
 		let total1,dims1,_,_ = List.assoc c1 compartments
 		and total2,dims2,_,_ = List.assoc c2 compartments in
 		let val1,var_order1 = partial_eval_indexlist ~dims:dims1 index_expr1
@@ -318,8 +341,8 @@ let eval_links compartments links =
 		let func_get_links = (
 		match var_order1,var_order2 with
 			| [],[] ->
-				let cell_list1 = index_expr_to_cells index_expr1 dims1
-				and cell_list2 = index_expr_to_cells index_expr2 dims2 in
+				let cell_list1 = index_expr_to_cells index_expr1 cond1 dims1
+				and cell_list2 = index_expr_to_cells index_expr2 cond2 dims2 in
 				(fun cname cell ->
 					let l1 = if c1 = cname && List.exists (fun c -> c = cell) cell_list1 then
 						[c2,cell_list2]
@@ -330,8 +353,8 @@ let eval_links compartments links =
 					in l1 @ l2
 				)
 			| [],_ | _,[] -> 
-				let cell_list1 = index_expr_to_cells index_expr1 dims1
-				and cell_list2 = index_expr_to_cells index_expr2 dims2 in
+				let cell_list1 = index_expr_to_cells index_expr1 cond1 dims1
+				and cell_list2 = index_expr_to_cells index_expr2 cond2 dims2 in
 				(fun cname cell ->
 					let l1 = if c1 = cname && List.exists (fun c -> c = cell) cell_list1 then
 						[c2,cell_list2]
@@ -344,15 +367,15 @@ let eval_links compartments links =
 			| var_order1,var_order2 -> 
 				let m1 = get_matrix_of_expr index_expr1 var_order1
 				and m2 = get_matrix_of_expr index_expr2 var_order2 in
-				let cell_list1 = index_expr_to_cells index_expr1 dims1
-				and cell_list2 = index_expr_to_cells index_expr2 dims2 in
+				let cell_list1 = index_expr_to_cells index_expr1 cond1 dims1
+				and cell_list2 = index_expr_to_cells index_expr2 cond2 dims2 in
 				(fun cname cell ->
 				let l1 = if c1 = cname && List.exists (fun c -> c = cell) cell_list1 then
 					let solved = solve m1 (cell,dims1) in
 					(* If all var values are float and eval to cell then true *)
 					if List.for_all (fun flt -> flt = ceil flt) solved then
 						let vars_values = List.combine var_order1 (List.map (fun flt -> int_of_float(flt)) solved) in
-						[cname,index_expr_to_cells ~vars_values:vars_values index_expr2 dims2]
+						[cname,index_expr_to_cells ~vars_values:vars_values index_expr2 cond2 dims2]
 					else []
 				else []
 				and l2 = if is_bidirectional && c2 = cname && List.exists (fun c -> c = cell) cell_list2 then
@@ -360,7 +383,7 @@ let eval_links compartments links =
 					(* If all var values are float and eval to cell then true *)
 					if List.for_all (fun flt -> flt = ceil flt) solved then
 						let vars_values = List.combine var_order2 (List.map (fun flt -> int_of_float(flt)) solved) in
-						[cname,index_expr_to_cells ~vars_values:vars_values index_expr1 dims1]
+						[cname,index_expr_to_cells ~vars_values:vars_values index_expr1 cond1 dims1]
 					else []
 				else []
 				in l1 @ l2
@@ -377,9 +400,9 @@ let eval_use compartments use_expressions =
 		(List.fold_right (fun use_expr_opt cells_list ->
 			match use_expr_opt with
 			| None -> [] :: cells_list
-			| Some use_expr -> (List.fold_right (fun ((cname,pos),indexlist_expr) cells ->
+			| Some use_expr -> (List.fold_right (fun ((cname,pos),indexlist_expr,cond_opt) cells ->
 					let _,dims,_,_ = List.assoc cname compartments in
-					(cname, (index_expr_to_cells indexlist_expr dims)) :: cells
+					(cname, (index_expr_to_cells indexlist_expr cond_opt dims)) :: cells
 				) use_expr []) :: cells_list
 		) use_expressions []
 	)
@@ -400,9 +423,7 @@ let initialize_glob result_glob =
 			match cells with
 				| [] -> true
 				| cells_list ->
-					List.exists (fun cell -> 
-						cell = cnum
-					) (List.assoc cname cells_list)
+					List.exists (fun cell -> cell = cnum) (List.assoc cname cells_list)
 		with 
 		| Not_found -> false
 		| Invalid_argument _ -> true
@@ -477,10 +498,17 @@ let initialize_glob result_glob =
 					) [] result_glob.Ast.rules_g
 				in let local_transports = (*TODO*)
 					let fresh_id = ref 0 in
-					List.fold_left (fun trans_list ( (lname,_), mixt, expr, pos ) -> (*iter transports*)
+					List.fold_left (fun trans_list ( (lname,_), mixt, expr, joined, pos ) -> (*iter transports*)
 						List.fold_left (fun t_link_list (func_get_links,travel) -> (*iter links 'lname'*)
-							(List.map (fun (cname,cells) -> (*iter destination cells*)
-								List.map (fun cell ->
+							(List.map (fun (cname2,cells) -> (*iter destination cells*)
+								List.fold_left (fun t_rules cell ->
+								if cname = cname2 && cnum = cell then
+									(Printf.printf "*** (%s) line %d, char %d: declaration implies 'self to self' transport.(aborting)\n" 
+										(fn pos) (ln pos) (cn pos); t_rules)
+								else
+								(*if lname="cytosol-diffusion" && (cell = 13 || cnum = 13) then
+									[]
+								else*)
 								match mixt with
 							| Ast.COMMA(agent,mixture) -> 
 									fresh_id := !fresh_id+1;
@@ -497,12 +525,12 @@ let initialize_glob result_glob =
 									Ast.k_def = expr;
 									Ast.k_un = None;
 									Ast.k_op = None;
-									Ast.transport_to = Some ((cname,cell),travel);
+									Ast.transport_to = Some ((cname2,cell),travel,joined);
 									Ast.use_id = -1;
 									Ast.fixed = true;
-									})
+									}) :: t_rules
 							| _ -> Debug.tag "Transport Rule with no Agent\n" ;exit 1
-							) cells
+							) [] cells
 							) (func_get_links cname cnum) ) @ t_link_list 
 						) [] (Hashtbl.find_all result_links lname)
 						@ trans_list

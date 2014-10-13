@@ -50,7 +50,7 @@ OCAMLCP = $(OCAMLBINPATH)ocamlcp
 OCAMLLEX = $(OCAMLBINPATH)ocamllex
 OCAMLYACC = $(OCAMLBINPATH)ocamlyacc
 OCAMLC = $(OCAMLBINPATH)ocamlc unix.cma mpi.cma -ccopt -L. -cclib -lmpich -cclib -lmpl -cclib -lopa
-OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I /usr/local/lib/ocaml/ocamlmpi unix.cmxa mpi.cmxa str.cmxa -ccopt -L. -cclib -lmpich -cclib -lmpl -cclib -lopa #-g -ccopt -g -ccopt -pg
+OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I /usr/local/lib/ocaml/ocamlmpi unix.cmxa mpi.cmxa str.cmxa -ccopt -L/home/ifuenzalida/usr/lib -cclib -lmpich -cclib -lmpl -cclib -lopa #-g -ccopt -g -ccopt -pg
 OCAMLDEP = $(OCAMLBINPATH)ocamldep unix.cma mpi.cma 
 CC = gcc
 

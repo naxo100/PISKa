@@ -2,6 +2,8 @@
 open Random_tree
 
 
+let (syncErrors: float list ref) = ref []
+
 let activity_list state counter env =
 	let total_activity = Random_tree.total state.State.activity_tree in
 	Hashtbl.fold

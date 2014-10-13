@@ -11,10 +11,11 @@ open Communication
 
 (***)
 
-let version = "1.0"
+let version = "1.1"
+let kasim_version = "3.5-160514"
 
-let usage_msg = "PISKa "^version^" (based on KaSim version 3.5-160514): \n"^"Usage is $ [mpirun* -np n_comparts] PISKa -i input_file [-e events] -t time [-p points] -sync-t s_time\n" (*^ "process number:"^(string_of_int myrank)*)
-let version_msg = "Parallel Spatial Kappa Simulator: "^version^" (based on KaSim version 3.1-191112)\n"
+let usage_msg = "PISKa "^version^" (based on KaSim version "^kasim_version^"): \n"^"Usage is $ [mpirun* -np n_comparts] PISKa -i input_file [-e events] -t time [-p points] -sync-t s_time\n" (*^ "process number:"^(string_of_int myrank)*)
+let version_msg = "Parallel Spatial Kappa Simulator: "^version^" (based on KaSim version "^kasim_version^")\n"
 
 let close_desc opt_env =
 	List.iter (fun d -> close_out d) !Parameter.openOutDescriptors ;
@@ -28,9 +29,9 @@ let main =
 		("--version", Arg.Unit (fun () -> print_string (version_msg^"\n") ; flush stdout ; exit 0), "display KaSim version");
 		("-i", Arg.String (fun fic -> Parameter.inputKappaFileNames:= fic:: (!Parameter.inputKappaFileNames)),
 			"name of a kappa file to use as input (can be used multiple times for multiple input files)");
-		("-e", Arg.Int (fun i -> if i < 0 then Parameter.maxEventValue := None else Parameter.maxTimeValue:= None ; Parameter.maxEventValue := Some i) ,
+		("-e", Arg.Int (fun i -> if i < 0 then Parameter.maxEventValue := None else (*Parameter.maxTimeValue:= None ;*) Parameter.maxEventValue := Some i) ,
 			"Number of total simulation events, including null events (negative value for unbounded simulation)");
-		("-t", Arg.Float(fun t -> Parameter.maxTimeValue := Some t ; Parameter.maxEventValue := None), "Max time of simulation (arbitrary time unit)");
+		(***)("-t", Arg.Float(fun t -> Parameter.maxTimeValue := Some t (*; Parameter.maxEventValue := None*)), "Max time of simulation (arbitrary time unit)");
 		("-p", Arg.Int (fun i -> Parameter.plotModeOn := true ; Parameter.pointNumberValue:= Some i), "Number of points in plot");
 		("-o", Arg.String (fun s -> Parameter.outputDataName:=s ), "file name for data output (deprecated, by default setted to comp_name(proc_id).out") ;
 		("-d", 
@@ -54,7 +55,8 @@ let main =
 		("--backtrace", Arg.Unit (fun () -> Parameter.backtrace:= true), "Backtracing exceptions") ;
 		("--gluttony", Arg.Unit (fun () -> Gc.set { (Gc.get()) with Gc.space_overhead = 500 (*default 80*) } ;), "Lower gc activity for a faster but memory intensive simulation") ;
 		("-rescale-to", Arg.Int (fun i -> Parameter.rescale:=Some i), "Rescale initial concentration to given number for quick testing purpose") ; 
-  		("-sync-t", Arg.Float (fun t -> Parameter.syncTime := t ), "Simulation time to Synchronize threads (ie. messaging / transport)");
+  		(***)("-sync-t", Arg.Float (fun t -> Parameter.syncTime := t ), "Simulation time to Synchronize threads (ie. messaging / transport)");
+  		(***)("-show-progress",Arg.Int (fun n -> Parameter.showProgressStep := Some n), "Show simulation progress every N synchronizations.")
  	] 
 	in
 	begin

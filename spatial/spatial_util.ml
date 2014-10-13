@@ -42,6 +42,10 @@ let string_of_comp ?(dims_opt) (cname,cnum) =
 let is_main () = (Mpi.comm_rank Mpi.comm_world) = 0
 
 let identity a = a
+
+let rec sum_floatlist l = match l with
+	| [] -> 0.0
+	| err :: tl -> err +. sum_floatlist tl
 			
 let time_table = ref (Hashtbl.create 10)
 

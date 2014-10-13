@@ -63,8 +63,10 @@ type index_term =
 	| 	MINUS_I of index_term * index_term * Tools.pos
 	| 	POW_I of index_term * index_term * Tools.pos
 	| 	MODULO_I of index_term * index_term * Tools.pos
+	
+and index_expr =  index_term list 
 
-type index_expr = (index_term) list
+and cmp_expr = str_pos * index_expr * (bool_expr option)
 (***)
 
 type rule = {
@@ -78,7 +80,7 @@ type rule = {
 	k_un:(alg_expr * alg_expr option) option ; (*k_1:radius_opt*)
 	k_op: alg_expr option ; (*rate for backward rule*)
 	(***)	
-	transport_to: ((string * int) * float ) option;
+	transport_to: ((string * int) * float * bool) option;
 	use_id: int;
 	fixed: bool;
 	(***)
@@ -135,17 +137,16 @@ type instruction =
 	| COMPART of comp_t
 	| C_LNK of clink_t
 	| TRANSP of transp_t
-	| USE_C of ((string * Tools.pos) * index_expr) list
+	| USE_C of (cmp_expr) list
 and comp_t =
-	( (string * Tools.pos) * index_expr ) * alg_expr * Tools.pos
+	cmp_expr * alg_expr * Tools.pos
 and clink_t =
-	(string * Tools.pos) * ((string * Tools.pos) * index_expr) * 
-							arrow * 
-							((string * Tools.pos) * index_expr) * alg_expr * Tools.pos
+	(string * Tools.pos) * cmp_expr * arrow * 
+				cmp_expr * alg_expr * Tools.pos
 and nodepair_expr =
-	((string * Tools.pos) * index_expr) * ((string * Tools.pos) * index_expr) * bool * float * Tools.pos
+	cmp_expr * cmp_expr * bool * float * Tools.pos
 and transp_t =
-	(string * Tools.pos) * mixture * alg_expr * Tools.pos
+	(string * Tools.pos) * mixture * alg_expr * bool * Tools.pos
 (***)
 and init_t = 
 	| INIT_MIX of  alg_expr * mixture 
@@ -179,9 +180,9 @@ type compil_glob = {compartments: (string, index_expr * alg_expr * Tools.pos) Ha
 					links		: (string , nodepair_expr)  Hashtbl.t;
 
 					rules_g		: (rule_label * rule) list ;
-					transports	: (str_pos * mixture * alg_expr * Tools.pos) list ;
+					transports	: (str_pos * mixture * alg_expr * bool * Tools.pos) list ;
 					
-					use_expressions : ( (str_pos * index_expr) list option) list;
+					use_expressions : ( cmp_expr list option) list;
 					(*mutable fresh_use_id: int;*)
 					
 					
