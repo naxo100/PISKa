@@ -79,9 +79,9 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 	in			
 	
 	(*3. Apply rule & negative update*)
-	let opt_new_state =
+	(***)let opt_new_state,inc_fun =
 		match opt_instance with
-			| None -> None
+			| None -> None,Counter.inc_events
 			| Some (r,embedding_t) ->
 				(**********************************************)
 				if !Parameter.debugModeOn then 
@@ -100,14 +100,15 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 				else () ;
 				(********************************************)
 				(***)
-				try let new_state = 
+				try let new_state,inc_fun = 
 				(match r.Dynamics.transport_to with 
 				| Some transport_info ->
-					Transport.apply state (r,transport_info) embedding_t counter env comp_map 
+					(Transport.apply state (r,transport_info) embedding_t counter env comp_map),Counter.inc_diffusions
 				| None ->
-	 				State.apply state r embedding_t counter env )
-	 			in Some (new_state,r)
-	 			with Null_event _ -> None
+	 				(State.apply state r embedding_t counter env),Counter.inc_reactions
+	 			)
+	 			in Some (new_state,r),inc_fun
+	 			with Null_event _ -> None,Counter.inc_events
 	 			(***)
 	
 	in
@@ -117,7 +118,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 		match opt_new_state with
 			| Some ((env,state,side_effect,embedding_t,psi,pert_ids_rule),r) ->
 				
-				Counter.inc_events counter ;
+				inc_fun counter ;
 				counter.Counter.cons_null_events <- 0 ; (*resetting consecutive null event counter since a real rule was applied*)  
 				let env,pert_ids = State.update_dep state (-1) Mods.EVENT (IntSet.union pert_ids_rule pert_ids_time) counter env in
 				
@@ -227,6 +228,7 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 	let env,pert_ids = State.update_dep state (-1) Mods.TIME pert_ids counter env in
 	let state,env,_,_,_ = External.try_perturbate [] state pert_ids [] counter env 
 	(***)in let max_id_pert = ref (IntMap.size state.State.perturbations)
+	(***)in let buff_totals = ref (Array.copy counter.Counter.total_events)
 	in
 	let rec iter state story_profiling event_list counter plot env =
 		(***)
@@ -242,12 +244,12 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 				
 				(*gather Data*)
 				let transport_messages = Communication.transport_synchronize comp_map comp_name state.State.transports
-				and total_counter_array = Communication.total_counter_synchronize counter in
+				and old_totals = Array.copy counter.Counter.total_events
+				and counter_totals = Communication.total_counter_synchronize counter in
 				
 				if Counter.show_progress counter && is_main() then
-					Debug.tag (Printf.sprintf "Synchronization %d\n\tSimulated-Time:\t%f\tEvents:\t%d\n\tTotal-Sync-Error:\t%f" 
-							(Counter.get_sync_count counter) (Counter.time counter) (total_counter_array.(0)) 
-							(Spatial_util.sum_floatlist !Quality.syncErrors));
+					(Spatial_util.print_sync_info counter !buff_totals counter_totals (Hashtbl.length comp_map);
+					buff_totals := Array.copy counter.Counter.total_events;);
 				
 				(* Get perturbations from received transport Data*)
 				let pert_list, rule_list, env = Transport.perts_of_transports transport_messages counter env in

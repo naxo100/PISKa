@@ -1,4 +1,6 @@
 
+open Mods
+
 (** 'a list -> a' list
  * Remove duplicates from a list *)
 let rec remove_dups lst = 
@@ -75,9 +77,19 @@ let show_timer () =
 			(curr_lab := label; Printf.printf "\n%s\t%f" label time)
 	)
 	!time_table;
-	Debug.tag "\n";
+	Debug.tag "\n"
 	
-
+let print_sync_info counter old_totals totals comps =
+	match counter.Counter.progress_step with
+		| None -> ()
+		| Some n -> 
+			Debug.tag "_______________________________________________";
+			Debug.tag (Printf.sprintf "Synchronization %d-%d\n\tSimulated-Time:\t%f\tTotal Events:\t%d\n\t---- Stats for this period ----\n\tReaction Ev: %d \tDiffusion Ev: %d\n\tAverage Events per Sync. per Compart. : %.1f\n\tTotal-Sync-Error:\t%f" 			
+				((Counter.get_sync_count counter) - n + 1) (Counter.get_sync_count counter)
+				(Counter.time counter) (totals.(0))
+				(totals.(1) - old_totals.(1)) (totals.(2) - old_totals.(2))
+				(float(totals.(1)+totals.(2) - old_totals.(1)-old_totals.(2)) /. float(n) /. float(comps) )
+				(sum_floatlist !Quality.syncErrors))
 
 
 

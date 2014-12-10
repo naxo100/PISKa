@@ -91,6 +91,8 @@ let transport_synchronize comp_map comp_id transports =
 
 let local_counter_array counter =
 	[| counter.Counter.events ;
+		counter.Counter.reaction_ev ;
+		counter.Counter.diffusion_ev ;
 		counter.Counter.null_events ; 
 		counter.Counter.cons_null_events ;
 		counter.Counter.perturbation_events ; 

@@ -283,7 +283,10 @@ module Counter =
 			
 			(** **)
 			progress_step:int option;
+			(* [events|react_evts|diff_evts|nl_evts|cns_nl_evts|pert_evts|nl_action] *)
 			total_events:int array;
+			mutable reaction_ev:int;
+			mutable diffusion_ev:int;
 			
 			mutable sync_count : int ;
 			mutable need_sync: bool;
@@ -314,6 +317,9 @@ module Counter =
 		let set_tick c (i,x) = c.last_tick <- (i,x)
 		
 		(** **)
+		let inc_reactions c = c.reaction_ev <- (c.reaction_ev + 1); inc_events c
+		let inc_diffusions c = c.diffusion_ev <- (c.diffusion_ev + 1); inc_events c 
+		
 		let show_progress c = match c.progress_step with None -> false | Some n -> c.sync_count mod n = 0
 		let need_sync c = c.need_sync
 		let check_last_sync c = match c.max_time with 
@@ -413,11 +419,13 @@ module Counter =
 				stop = false;
 								
 				(***)
+				reaction_ev = 0;
+				diffusion_ev = 0;
 				progress_step = (match !Parameter.showProgressStep with 
 					| Some 0 -> (match mx_t with Some t -> Some (int_of_float (t /. (100.0 *. sync_t))) | None -> Some 1)
 					| None | Some _ -> !Parameter.showProgressStep 
 				);
-				total_events = Array.make 5 0;
+				total_events = Array.make 7 0;
 				
 				sync_time = sync_t;
 				need_sync = false;

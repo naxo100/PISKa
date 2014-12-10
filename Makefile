@@ -20,7 +20,7 @@ SOURCES = \
 		cflow/kappa_instantiation.ml cflow/po_cut.ml cflow/pseudo_inverse.ml cflow/blackboard_generation.ml cflow/blackboard.ml cflow/propagation_heuristics.ml \
 		cflow/generic_branch_and_cut_solver.ml cflow/dag.ml cflow/dag2.ml cflow/compression_main.ml  simulation/plot.ml Error/safe.ml \
 		dataStructures/linear.ml \
-		spatial/spatial_util.ml spatial/spatial_eval.ml spatial/transport.ml spatial/communication.ml spatial/quality.ml\
+		spatial/quality.ml spatial/spatial_util.ml spatial/spatial_eval.ml spatial/transport.ml spatial/communication.ml \
 		simulation/run.ml \
 		main/main.ml 
 
