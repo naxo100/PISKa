@@ -417,6 +417,7 @@ let rec partial_eval_alg env ast =
 			) " modulo "
 		| COSINUS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some cos) None None) "cos"
 		| TAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some tan) None None) "tan"
+		| ATAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some atan) None None) "atan"
 		| SINUS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some sin) None None) "sin"
 		| EXP (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some exp) None None) "e^"
 		| SQRT (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some sqrt) None None) "sqrt"
