@@ -292,6 +292,7 @@ module Counter =
 			mutable need_sync: bool;
 			mutable next_sync_at: float;
 			mutable sync_time : float;
+			mutable last_dt : float option;
 			(** **)
 			}
 
@@ -397,7 +398,7 @@ module Counter =
 	 	let stat_null i c = try c.stat_null.(i) <- c.stat_null.(i) + 1 with exn -> invalid_arg "Invalid null event identifier"
               
 		(***)let create init_t init_e mx_t mx_e sync_t = 
-			let dE = (*compute_dE()*) None in
+			let dE = compute_dE() in
 				let dT = match dE with None -> compute_dT() | Some _ -> None
 				in
 				{time = init_t ; 
@@ -430,7 +431,8 @@ module Counter =
 				sync_time = sync_t;
 				need_sync = false;
 				sync_count = 1;
-				next_sync_at = sync_t
+				next_sync_at = sync_t;
+				last_dt = None;
 				(***)
 				}
 		

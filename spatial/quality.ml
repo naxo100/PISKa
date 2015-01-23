@@ -29,6 +29,10 @@ let activity_list2 state counter env =
 		else l
 	) state.State.rules [("total",total_activity)]
 
+let new_dt dT' dA old_A =
+	if dT' = infinity && dA >= 0. then None
+	else Some (old_A *. dT' /. (old_A +. dA))
+
 
 let rule_names state counter env =
 	Hashtbl.fold

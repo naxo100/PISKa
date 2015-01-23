@@ -11,7 +11,7 @@ open Communication
 
 (***)
 
-let version = "1.1"
+let version = "1.2"
 let kasim_version = "3.5-160514"
 
 let usage_msg = "PISKa "^version^" (based on KaSim version "^kasim_version^"): \n"^"Usage is $ [mpirun* -np n_comparts] PISKa -i input_file [-e events] -t time [-p points] -sync-t s_time\n" (*^ "process number:"^(string_of_int myrank)*)

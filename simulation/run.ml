@@ -8,6 +8,7 @@ open Random_tree
 let event state (*grid*) story_profiling event_list counter plot env (***)comp_map =
 	(*1. Time advance*)
 	let dt,activity = 
+		(***)match counter.Counter.last_dt with | Some t -> t,Random_tree.total state.State.activity_tree | None ->
 		let rd = Random.float 1.0 
 		and activity = (*Activity.total*) Random_tree.total state.State.activity_tree 
 		in
@@ -36,6 +37,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 	(*Debug.tag (string_of_set string_of_int IntSet.fold pert_ids_time);*)
 	if dt +. Counter.time counter > Counter.get_next_synctime counter then 
 	(
+		counter.Counter.last_dt <- Some dt;
 		Counter.set_need_sync counter true;
 		(state,story_profiling,event_list,env)
 	)
@@ -51,6 +53,8 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 		end ;
 	Plot.fill state counter plot env dt ; 
 	Counter.inc_time counter dt ;
+	
+	(***)counter.Counter.last_dt <- None;
 	
 	(*updating activity of rule whose rate depends on time or event number*)
 	(*let env,pert_ids = State.update_dep state Mods.EVENT IntSet.empty counter env in*)
@@ -227,7 +231,7 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 	let env,pert_ids = State.update_dep state (-1) Mods.EVENT IntSet.empty counter env in
 	let env,pert_ids = State.update_dep state (-1) Mods.TIME pert_ids counter env in
 	let state,env,_,_,_ = External.try_perturbate [] state pert_ids [] counter env 
-	(***)in let max_id_pert = ref (IntMap.size state.State.perturbations)
+	(*(***)in let max_id_pert = ref (IntMap.size state.State.perturbations)*)
 	(***)in let buff_totals = ref (Array.copy counter.Counter.total_events)
 	in
 	let rec iter state story_profiling event_list counter plot env =
@@ -272,18 +276,26 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 								Hashtbl.add rs (r.Dynamics.r_id) r; rs,i+1
 						) (state.State.rules, Hashtbl.length state.State.rules) rule_list
 					in
-					let state = {state with State.rules=rules; State.perturbations = perts}
+					let state = {state with State.rules=rules; State.perturbations = perts} in
 					(*and env = Environment.init_roots_of_nl_rules env in
 					let dt = (Counter.get_next_synctime counter) -. (Counter.time counter)*)
-					in counter.Counter.time <- Counter.get_next_synctime counter ;
+					let last_dt = match counter.Counter.last_dt with 
+						| None -> 0.0 
+						| Some dt -> dt +. counter.Counter.time -. Counter.get_next_synctime counter
+					in counter.Counter.last_dt <- if last_dt = 0.0 then None else Some last_dt;
+					counter.Counter.time <- Counter.get_next_synctime counter ;
+					Plot.fill state counter plot env (match Counter.dT counter with |None-> 0.0 |Some dT-> -.dT) ;
 					let state,env = Communication.update_state state env counter in
 					let env,pert_ids_time = State.update_dep state (-1) Mods.TIME IntSet.empty counter env in
 					let state,env,obs,events,_ =
 						External.try_perturbate [] state pert_ids_time [] counter env 
 					in (
+						Plot.fill state counter plot env 0.0 ;
 						(*counter.Counter.perturbation_events <- Counter.event counter ;*)
 						let post_activity_list = Quality.activity_list state counter env
 						and delay = Quality.average_delay transport_messages in
+						let old_A,new_A = (List.hd pre_activity_list),(List.hd post_activity_list) in
+						counter.Counter.last_dt <- Quality.new_dt last_dt (new_A -. old_A) old_A;
 						let error = Quality.transport_error pre_activity_list post_activity_list delay in
 						let total_error = Mpi.reduce_float error Mpi.Float_sum 0 comm_world in
 						if (comm_rank comm_world) = 0 then 
@@ -305,7 +317,8 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 			iter state story_profiling event_list counter plot env
 		else (*exiting the loop*)
 		  begin
-      	let _ = 
+      	let _ =
+			  match !Parameter.maxTimeValue with | None-> () | Some t -> Counter.inc_time counter (t -. (Counter.time counter)) ; 
 		      Plot.fill state counter plot env 0.0; (*Plotting last measures*)
 		      Plot.flush_ticks counter
 		      (***)(*Plot.close plot*)

@@ -132,20 +132,18 @@ let pert_of_transport_string agent_str num arr_time counter from env =
 		((fun _ _ _ _ _ _ _-> true), true, DepSet.singleton Mods.EVENT, "true")
 	in*)
 	let bv = 
-		if (arr_time > 0.0) then
-			let (x, is_constant, dep, str_pre,_) = Eval.partial_eval_bool env 
-				(Ast.OR (
-				(Ast.GREATER ( Ast.TIME_VAR Tools.no_pos, Ast.FLOAT (arr_time,Tools.no_pos), Tools.no_pos) ),
-				(Ast.EQUAL ( Ast.TIME_VAR Tools.no_pos, Ast.FLOAT (arr_time,Tools.no_pos), Tools.no_pos) ),
-				Tools.no_pos))
-				
-			in
-				if is_constant then 
-					Dynamics.BCONST (Dynamics.close_var x)
-				else 
-					Dynamics.BVAR x
-		else
-			Dynamics.BCONST (Dynamics.close_var (fun _ _ _ _ _ _ _-> true)) 
+		let new_arr_time = if (arr_time > 0.0) then arr_time else counter.Counter.time in
+		let (x, is_constant, dep, str_pre,_) = Eval.partial_eval_bool env 
+			(Ast.OR (
+			(Ast.GREATER ( Ast.TIME_VAR Tools.no_pos, Ast.FLOAT (new_arr_time,Tools.no_pos), Tools.no_pos) ),
+			(Ast.EQUAL ( Ast.TIME_VAR Tools.no_pos, Ast.FLOAT (new_arr_time,Tools.no_pos), Tools.no_pos) ),
+			Tools.no_pos))
+			
+		in
+			if is_constant then 
+				Dynamics.BCONST (Dynamics.close_var x)
+			else 
+				Dynamics.BVAR x
 	in
 	let pert = 
 		{ Dynamics.precondition = bv;
