@@ -293,6 +293,7 @@ module Counter =
 			mutable next_sync_at: float;
 			mutable sync_time : float;
 			mutable last_dt : float option;
+			mutable zero_reactivity : bool;
 			(** **)
 			}
 
@@ -324,8 +325,10 @@ module Counter =
 		let show_progress c = match c.progress_step with None -> false | Some n -> c.sync_count mod n = 0
 		let need_sync c = c.need_sync
 		let check_last_sync c = match c.max_time with 
-			| None -> true 
-			| Some max -> c.sync_time *. (float_of_int (c.sync_count-1)) < max
+			| Some max_t -> c.sync_time *. (float_of_int (c.sync_count-1)) (*c.time*) < max_t
+			| None -> match c.max_events with
+				| Some max_e -> not c.zero_reactivity
+				| None -> exit 1 (* add exception *)
 		let inc_sync c = 
 			c.sync_count <- c.sync_count + 1;
 			c.need_sync <- false;
@@ -433,6 +436,7 @@ module Counter =
 				sync_count = 1;
 				next_sync_at = sync_t;
 				last_dt = None;
+				zero_reactivity = false;
 				(***)
 				}
 		

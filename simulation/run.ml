@@ -259,7 +259,11 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 				let pert_list, rule_list, env = Transport.perts_of_transports transport_messages counter env in
 				if List.length pert_list = 0 then (
 					Counter.inc_sync counter;
-					let total_error = Mpi.reduce_float 0.0 Mpi.Float_sum 0 comm_world in
+					let result = Array.make 2 0. in
+					Mpi.allreduce_float_array [| (List.hd pre_activity_list) ; 0.0 |] result Mpi.Float_sum comm_world;
+					let total_activity = result.(0)
+					and total_error = result.(1) in
+					if total_activity = 0. then counter.Counter.zero_reactivity <- true else ();
 					if (comm_rank comm_world) = 0 then Quality.syncErrors := total_error :: !Quality.syncErrors;
 					state,story_profiling,event_list,env
 				)
@@ -296,8 +300,12 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 						and delay = Quality.average_delay transport_messages in
 						let old_A,new_A = (List.hd pre_activity_list),(List.hd post_activity_list) in
 						counter.Counter.last_dt <- Quality.new_dt last_dt (new_A -. old_A) old_A;
-						let error = Quality.transport_error pre_activity_list post_activity_list delay in
-						let total_error = Mpi.reduce_float error Mpi.Float_sum 0 comm_world in
+						let error = Quality.transport_error pre_activity_list post_activity_list delay 
+						and result = Array.make 2 0. in
+						Mpi.allreduce_float_array [| (List.hd pre_activity_list) ; error |] result Mpi.Float_sum comm_world;
+						let total_activity = result.(0)
+						and total_error = result.(1) in
+						if total_activity = 0. then counter.Counter.zero_reactivity <- true else ();
 						if (comm_rank comm_world) = 0 then 
 							Quality.syncErrors := total_error :: !Quality.syncErrors;
 						
