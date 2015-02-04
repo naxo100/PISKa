@@ -33,7 +33,7 @@ let main =
 			"Number of total simulation events, including null events (negative value for unbounded simulation)");
 		(***)("-t", Arg.Float(fun t -> Parameter.maxTimeValue := Some t (*; Parameter.maxEventValue := None*)), "Max time of simulation (arbitrary time unit)");
 		("-p", Arg.Int (fun i -> Parameter.plotModeOn := true ; Parameter.pointNumberValue:= Some i), "Number of points in plot");
-		("-o", Arg.String (fun s -> Parameter.outputDataName:=s ), "file name for data output (deprecated, by default setted to comp_name(proc_id).out") ;
+		("-o", Arg.String (fun s -> Parameter.outputDataName:=s ), "prefix for file name of data output (setted to PrefixComp_name[index].out") ;
 		("-d", 
 		Arg.String 
 			(fun s -> 
@@ -200,7 +200,7 @@ let main =
 		else () ;
     let profiling = Compression_main.D.S.PH.B.PB.CI.Po.K.P.init_log_info () in 
     	let fname = Spatial_util.string_of_comp ~dims_opt:(dims) comp_id in
-		let plot = Plot.create (Filename.concat !Parameter.outputDirName (fname ^".out"))
+		let plot = Plot.create (Filename.concat !Parameter.outputDirName (!Parameter.outputDataName ^ fname ^".out"))
 		and grid,profiling,event_list = 
 			if Environment.tracking_enabled env then
 				let _ = 
