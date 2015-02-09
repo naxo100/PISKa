@@ -211,7 +211,7 @@ let get_matrix_of_expr expr_list var_order =
  * for a particular cell *)
 let solve (a_inv,b0,at_opt) (cell,dims) = 
 	let indexlist = cell_to_indexlist cell dims in
-	let b_aux = Linear.trans (Array.create 1 (
+	let b_aux = Linear.trans (Array.make 1 (
 		Linear.vadd b0.(0) (Array.of_list (List.map (fun i -> float(i) )  indexlist))
 	) ) in
 	let b = match at_opt with 
@@ -412,6 +412,7 @@ let eval_use compartments use_expressions =
  * of Ast.compil for being reevaluated in each compartment. *)
 let initialize_glob result_glob = 
 	let total_comparts = eval_compartments result_glob.Ast.compartments in
+	let total_cells = List.fold_right (fun (_,(l,_,_,_)) n -> n + l) total_comparts 0 in 
 	
 	let result_links = eval_links total_comparts result_glob.Ast.links in
 	
@@ -429,7 +430,7 @@ let initialize_glob result_glob =
 		| Invalid_argument _ -> true
 	in
 	
-	List.fold_right (fun compartment compils ->
+	let result_list = List.fold_right (fun compartment compils ->
 		let rec all_cells (cname,(length,dims,vol,pos)) cnum = 
 			if cnum = length then
 				[]
@@ -466,15 +467,7 @@ let initialize_glob result_glob =
 				) [] result_glob.Ast.perturbations_g
 			);
 		
-			Ast.init = (
-				let local_init = 
-					List.fold_left (fun i_list (vol,init,pos,use_id) ->
-						if is_in_use_expr cname cnum use_id then
-							(vol,init,pos)::i_list
-						else i_list
-					) [] result_glob.Ast.init_g
-				in local_init
-			);
+			Ast.init = [];
 			
 			Ast.rules = ( 
 				let local_rules = (* add only global rules or local to compartment *)
@@ -541,5 +534,46 @@ let initialize_glob result_glob =
 			}) :: all_cells compartment (cnum+1)
 		in compils @ (all_cells compartment 0)
 	) total_comparts []
+	in (*result_list*)
+	
+	let _,first_res_ast = (List.hd result_list) in
+	let temp_env = Eval.environment_of_result first_res_ast in
+	let (temp_env, kappa_vars, alg_vars) = Eval.variables_of_result temp_env first_res_ast in
+	
+	List.fold_right ( fun (vol,init_t,pos,use_id) result_list ->
+		match init_t with
+		| Ast.INIT_MIX (expr,mixt) -> 
+			let cells_len = 
+				let len = List.fold_right (fun (_,cells) n -> n + List.length cells ) use_cells.(use_id) 0 in
+				match len with
+					| 0 -> total_cells
+					| n -> n
+			in
+			let (v, is_const, opt_v, dep, lbl) = Eval.partial_eval_alg temp_env expr in
+			let value = 
+				match opt_v with
+					| Some v -> Num.int_of_num v
+					| None -> raise (ExceptionDefn.Semantics_Error (pos, Printf.sprintf "%s is not a constant, cannot initialize graph." lbl))
+  			in
+  			let rest = value mod cells_len in
+			let result_list,_ = List.fold_right (fun ((cname,cnum),result_ast) (new_result_list,distr) ->
+				if is_in_use_expr cname cnum use_id then
+					if cells_len > 1 then
+						let new_int_expr = Ast.INT (value / cells_len + (if List.hd distr then 1 else 0) , pos) in
+						let new_result = {result_ast with Ast.init = (vol,Ast.INIT_MIX (new_int_expr,mixt), pos) :: result_ast.Ast.init}
+						in (((cname,cnum), new_result ) :: new_result_list ), List.tl distr
+					else
+						let new_result = {result_ast with Ast.init = (vol,Ast.INIT_MIX (expr,mixt),pos) :: result_ast.Ast.init}
+						in (((cname,cnum), new_result ) :: new_result_list) , distr 
+				else
+					(((cname,cnum),result_ast ) :: new_result_list) , distr
+			) result_list ([],Spatial_util.distribute cells_len rest)
+			in result_list
+		| Ast.INIT_TOK (expr,tok) -> 
+			result_list
+	) result_glob.Ast.init_g result_list
+	
+
+	
 	
 	

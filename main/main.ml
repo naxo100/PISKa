@@ -86,19 +86,8 @@ let main =
 		
 		(*let _ = Printexc.record_backtrace !Parameter.debugModeOn in*) 
 		end;
-		let compils =
-			if  myrank = 0 then 
-				let result_g = 
-					Ast.init_compil_glob() ;
-					List.iter (fun fic -> let _ = KappaLexer.compile fic in ()) !Parameter.inputKappaFileNames ;
-					!Ast.result_glob
-				in
-					Spatial_eval.initialize_glob result_g;
-			else
-				[];
-		in
-		check_mpi_processes 0 "Parsing Globals: Ok";
 		
+				
 		(*Receive random seed from root if given*)
 		(*Initialize local random number generator*)
 		let (_: unit) = 
@@ -124,6 +113,19 @@ let main =
 				if myrank = 0 then Printf.printf "+ Initialized random number generator with seed %d\n" i
 			end
 		in
+		
+		let compils =
+			if  myrank = 0 then 
+				let result_g = 
+					Ast.init_compil_glob() ;
+					List.iter (fun fic -> let _ = KappaLexer.compile fic in ()) !Parameter.inputKappaFileNames ;
+					!Ast.result_glob
+				in
+					Spatial_eval.initialize_glob result_g;
+			else
+				[];
+		in
+		check_mpi_processes 0 "Parsing Globals: Ok";
 		
 		let counter =	Counter.create 0.0 0 !Parameter.maxTimeValue !Parameter.maxEventValue !Parameter.syncTime in
 		

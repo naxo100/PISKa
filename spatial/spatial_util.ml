@@ -92,4 +92,24 @@ let print_sync_info counter old_totals totals comps =
 				(sum_floatlist !Quality.syncErrors))
 
 
+let rec distribute ?(inv=false) c n =
+	if n > c/2 then distribute ~inv:true c (c-n) 
+	else
+		let arr = Array.init c (fun i -> (i,inv)) in
+		let rec iter index_list arr k =
+			match k with
+				| 0 -> let _,dist = 
+					List.split (List.sort (fun (a1,a2) (b1,b2) -> compare a1 b1) (index_list @ (Array.to_list arr)))
+					in (*Array.of_list*) dist
+				| k -> let i = Random.int (c-n+k) in
+					(*Printf.printf "i %d \n" i;*) 
+					arr.(i) <- (let ind,_ = arr.(i) in (ind,not inv));
+					let elem = arr.(i) in
+					iter (elem::index_list) (Array.append (Array.sub arr 0 i) (Array.sub arr (i+1) ((Array.length arr)-i-1)) ) (k-1)
+		in iter [] arr n
+
+
+
+
+
 
