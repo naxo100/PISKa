@@ -49,9 +49,9 @@ install:
 OCAMLCP = $(OCAMLBINPATH)ocamlcp
 OCAMLLEX = $(OCAMLBINPATH)ocamllex
 OCAMLYACC = $(OCAMLBINPATH)ocamlyacc
-OCAMLC = $(OCAMLBINPATH)ocamlc unix.cma mpi.cma -ccopt -L. -cclib -lmpich -cclib -lmpl -cclib -lopa
-OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I `$(OCAMLC) -where`/../mpi unix.cmxa mpi.cmxa str.cmxa -ccopt -L$(HOME)/usr/lib #-cclib -lmpich -cclib -lmpl -cclib -lopa #-g -ccopt -g -ccopt -pg
+OCAMLC = $(OCAMLBINPATH)ocamlc unix.cma mpi.cma #-ccopt -L. #-cclib -lmpich -cclib -lmpl -cclib -lopa
+OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I `$(OCAMLC) -where`/../mpi unix.cmxa mpi.cmxa str.cmxa #-ccopt -L$(HOME)/usr/lib #-cclib -lmpich -cclib -lmpl -cclib -lopa #-g -ccopt -g -ccopt -pg
 OCAMLDEP = $(OCAMLBINPATH)ocamldep unix.cma mpi.cma 
-CC = gcc
+CC = mpicc.openmpi
 
 include OCamlMakefile

@@ -102,6 +102,12 @@ let total_counter_synchronize counter =
 	let data_array = local_counter_array counter in
 	allreduce_int_array data_array counter.Counter.total_events Mpi.Int_sum comm_world;
 	counter.Counter.total_events
+	
+
+let allreduce_float_array arr =
+	let result = Array.make (Array.length arr) 0. in
+	Mpi.allreduce_float_array arr result Mpi.Float_sum comm_world;
+	result
 
 
 let propagate_error ex_msg =

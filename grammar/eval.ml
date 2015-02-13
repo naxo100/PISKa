@@ -417,12 +417,12 @@ let rec partial_eval_alg env ast =
 			) " modulo "
 		| COSINUS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some cos) None None) "cos"
 		| TAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some tan) None None) "tan"
-		| ATAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some atan) None None) "atan"
 		| SINUS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some sin) None None) "sin"
 		| EXP (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some exp) None None) "e^"
 		| SQRT (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some sqrt) None None) "sqrt"
 		| ABS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x None (Some abs) (Some Int64.abs)) "abs"
 		| LOG (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some log) None None) "log"
+		(***)| ATAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some atan) None None) "atan"
 
 let rec partial_eval_bool env ast =
 	let bin_op_bool ast ast' pos op op_str =

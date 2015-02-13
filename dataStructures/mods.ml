@@ -209,7 +209,7 @@ module InjProduct =
 		
 		let find i injprod = try injprod.elements.(i) with Invalid_argument _ -> raise Not_found
 		
-		let create n mix_id = {elements = Array.create n (Injection.empty 0 (-1,-1)) ; address = None ; coordinate = mix_id ; signature = Array.create n (-1)}
+		let create n mix_id = {elements = Array.make n (Injection.empty 0 (-1,-1)) ; address = None ; coordinate = mix_id ; signature = Array.make n (-1)}
 		
 		let equal phi psi =
 			try 
@@ -289,10 +289,9 @@ module Counter =
 			mutable diffusion_ev:int;
 			
 			mutable sync_count : int ;
-			mutable need_sync: bool;
 			mutable next_sync_at: float;
 			mutable sync_time : float;
-			mutable last_dt : float option;
+			mutable sync_event_dt : float;
 			mutable zero_reactivity : bool;
 			(** **)
 			}
@@ -323,7 +322,12 @@ module Counter =
 		let inc_diffusions c = c.diffusion_ev <- (c.diffusion_ev + 1); inc_events c 
 		
 		let show_progress c = match c.progress_step with None -> false | Some n -> c.sync_count mod n = 0
-		let need_sync c = c.need_sync
+		let sync_event c = c.sync_event_dt
+		let set_sync_event c dt = c.sync_event_dt <- dt
+		let update_sync_event c dA old_A = 
+			if c.sync_event_dt = infinity && dA >= 0. then 0.0
+			else old_A *. c.sync_event_dt /. (old_A +. dA)
+		let need_sync c = c.sync_event_dt > 0.0
 		let check_last_sync c = match c.max_time with 
 			| Some max_t -> c.sync_time *. (float_of_int (c.sync_count-1)) (*c.time*) < max_t
 			| None -> match c.max_events with
@@ -331,12 +335,14 @@ module Counter =
 				| None -> exit 1 (* add exception *)
 		let inc_sync c = 
 			c.sync_count <- c.sync_count + 1;
-			c.need_sync <- false;
 			c.next_sync_at <- c.next_sync_at +. c.sync_time 
 		let get_sync_count c = c.sync_count
-		let set_need_sync c value = c.need_sync <- value
 		let set_synctime c value = c.sync_time <- value
 		let get_next_synctime c = c.next_sync_at (*c.sync_time *. (float_of_int c.sync_count)*)
+		let next_sync c =
+			c.sync_event_dt <- c.sync_event_dt +. c.time -. c.next_sync_at;
+			c.time <- c.next_sync_at
+			(*inc_sync c*)
 		let set_finish_time c = c.time <- match c.max_time with | None -> 0.0 | Some t -> t
 		(** **)
 		let last_increment c = let _,t = c.last_tick in (c.time -. t) 
@@ -432,10 +438,9 @@ module Counter =
 				total_events = Array.make 7 0;
 				
 				sync_time = sync_t;
-				need_sync = false;
 				sync_count = 1;
 				next_sync_at = sync_t;
-				last_dt = None;
+				sync_event_dt = 0.0;
 				zero_reactivity = false;
 				(***)
 				}

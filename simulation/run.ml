@@ -8,7 +8,7 @@ open Random_tree
 let event state (*grid*) story_profiling event_list counter plot env (***)comp_map =
 	(*1. Time advance*)
 	let dt,activity = 
-		(***)match counter.Counter.last_dt with | Some t -> t,Random_tree.total state.State.activity_tree | None ->
+		(***)if Counter.need_sync counter then (Counter.sync_event counter,Random_tree.total state.State.activity_tree) else
 		let rd = Random.float 1.0 
 		and activity = (*Activity.total*) Random_tree.total state.State.activity_tree 
 		in
@@ -32,13 +32,10 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 				) depset (infinity,0.)
 			else (dt,activity) 
 	in 
-	(***)
-	let sync_t = counter.Counter.sync_time in
-	(*Debug.tag (string_of_set string_of_int IntSet.fold pert_ids_time);*)
+	(** if last event time > synctime then syncronize *)
 	if dt +. Counter.time counter > Counter.get_next_synctime counter then 
 	(
-		counter.Counter.last_dt <- Some dt;
-		Counter.set_need_sync counter true;
+		Counter.set_sync_event counter dt;
 		(state,story_profiling,event_list,env)
 	)
 	else begin
@@ -54,7 +51,7 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 	Plot.fill state counter plot env dt ; 
 	Counter.inc_time counter dt ;
 	
-	(***)counter.Counter.last_dt <- None;
+	(***)Counter.set_sync_event counter 0.0;
 	
 	(*updating activity of rule whose rate depends on time or event number*)
 	(*let env,pert_ids = State.update_dep state Mods.EVENT IntSet.empty counter env in*)
@@ -223,16 +220,15 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
  						
 let loop state story_profiling event_list counter plot env (***)comp_name comp_map =
 	(*Before entering the loop*)
-	
 	Counter.tick counter counter.Counter.time counter.Counter.events ;
 	Plot.output state counter.Counter.time counter.Counter.events plot env counter ;
 	
 	(*Checking whether some perturbation should be applied before starting the event loop*)
 	let env,pert_ids = State.update_dep state (-1) Mods.EVENT IntSet.empty counter env in
 	let env,pert_ids = State.update_dep state (-1) Mods.TIME pert_ids counter env in
-	let state,env,_,_,_ = External.try_perturbate [] state pert_ids [] counter env 
-	(*(***)in let max_id_pert = ref (IntMap.size state.State.perturbations)*)
-	(***)in let buff_totals = ref (Array.copy counter.Counter.total_events)
+	let state,env,_,_,_ = External.try_perturbate [] state pert_ids [] counter env in
+
+	(***)let buff_totals = ref (Array.copy counter.Counter.total_events)
 	in
 	let rec iter state story_profiling event_list counter plot env =
 		(***)
@@ -242,76 +238,55 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 			(** Begin-Sinchronize **)	
 			if (Counter.need_sync counter) || not ( (Counter.check_time counter) && (Counter.check_events counter) && 
 					not (Counter.stop counter) && (Counter.check_last_sync counter ) ) then begin
-				(**FIX NEW TIMER HERE**)
 				let pre_activity_list = Quality.activity_list state counter env in
-				(*barrier comm_world;*)
 				
 				(*gather Data*)
 				let transport_messages = Communication.transport_synchronize comp_map comp_name state.State.transports
 				and old_totals = Array.copy counter.Counter.total_events
 				and counter_totals = Communication.total_counter_synchronize counter in
 				
+				(* Get perturbations from received transport Data*)
+				let perts, env = Transport.perts_of_transports transport_messages counter env in
+				let state,counter,total_error,total_activity =
+					match perts with
+					| [],[] ->
+						let result = Communication.allreduce_float_array [| (List.hd pre_activity_list) ; 0.0 |]
+						in state,counter,result.(0),result.(1)
+					| pert_list,rule_list ->
+						let state = Transport.add_perturbations perts state in
+						Counter.next_sync counter;
+						(*plotting pre-perturbations*)
+						Plot.fill state counter plot env (match Counter.dT counter with |None-> 0.0 |Some dT-> -.dT) ;
+						
+						let state,env = Communication.update_state state env counter in
+						let env,pert_ids_time = State.update_dep state (-1) Mods.TIME IntSet.empty counter env in
+						let state,env,obs,events,_ =
+							External.try_perturbate [] state pert_ids_time [] counter env 
+						in 
+							(*plotting post_perturbations*)
+							Plot.fill state counter plot env 0.0 ;
+							(*fix event-dt by perturbations*)
+							let post_activity_list = Quality.activity_list state counter env in
+							let old_A,new_A = (List.hd pre_activity_list),(List.hd post_activity_list) in
+							Counter.update_sync_event counter (new_A -. old_A) old_A;
+							(*Error*)
+							let delay = Quality.average_delay transport_messages in
+							let error = Quality.transport_error pre_activity_list post_activity_list delay in
+							let result = Communication.allreduce_float_array [| (List.hd pre_activity_list) ; error |]
+							in state,counter,result.(0),result.(1)
+				in
+				
+				(*print sync-info*)
 				if Counter.show_progress counter && is_main() then
 					(Spatial_util.print_sync_info counter !buff_totals counter_totals (Hashtbl.length comp_map);
 					buff_totals := Array.copy counter.Counter.total_events;);
 				
-				(* Get perturbations from received transport Data*)
-				let pert_list, rule_list, env = Transport.perts_of_transports transport_messages counter env in
-				if List.length pert_list = 0 then (
-					Counter.inc_sync counter;
-					let result = Array.make 2 0. in
-					Mpi.allreduce_float_array [| (List.hd pre_activity_list) ; 0.0 |] result Mpi.Float_sum comm_world;
-					let total_activity = result.(0)
-					and total_error = result.(1) in
-					if total_activity = 0. then counter.Counter.zero_reactivity <- true else ();
-					if (comm_rank comm_world) = 0 then Quality.syncErrors := total_error :: !Quality.syncErrors;
-					state,story_profiling,event_list,env
-				)
-				else
-					let perts = 
-						List.fold_left (fun (perts) (p_id,pert) ->
-							IntMap.add p_id pert perts
-						) (state.State.perturbations) pert_list
-					and rules,_ =
-						List.fold_left (fun (rs,i) (r_opt,e) ->
-							match r_opt with 
-							| None -> rs,i
-							| Some r ->
-								Hashtbl.add rs (r.Dynamics.r_id) r; rs,i+1
-						) (state.State.rules, Hashtbl.length state.State.rules) rule_list
-					in
-					let state = {state with State.rules=rules; State.perturbations = perts} in
-					(*and env = Environment.init_roots_of_nl_rules env in
-					let dt = (Counter.get_next_synctime counter) -. (Counter.time counter)*)
-					let last_dt = match counter.Counter.last_dt with 
-						| None -> 0.0 
-						| Some dt -> dt +. counter.Counter.time -. Counter.get_next_synctime counter
-					in counter.Counter.last_dt <- if last_dt = 0.0 then None else Some last_dt;
-					counter.Counter.time <- Counter.get_next_synctime counter ;
-					Plot.fill state counter plot env (match Counter.dT counter with |None-> 0.0 |Some dT-> -.dT) ;
-					let state,env = Communication.update_state state env counter in
-					let env,pert_ids_time = State.update_dep state (-1) Mods.TIME IntSet.empty counter env in
-					let state,env,obs,events,_ =
-						External.try_perturbate [] state pert_ids_time [] counter env 
-					in (
-						Plot.fill state counter plot env 0.0 ;
-						(*counter.Counter.perturbation_events <- Counter.event counter ;*)
-						let post_activity_list = Quality.activity_list state counter env
-						and delay = Quality.average_delay transport_messages in
-						let old_A,new_A = (List.hd pre_activity_list),(List.hd post_activity_list) in
-						counter.Counter.last_dt <- Quality.new_dt last_dt (new_A -. old_A) old_A;
-						let error = Quality.transport_error pre_activity_list post_activity_list delay 
-						and result = Array.make 2 0. in
-						Mpi.allreduce_float_array [| (List.hd pre_activity_list) ; error |] result Mpi.Float_sum comm_world;
-						let total_activity = result.(0)
-						and total_error = result.(1) in
-						if total_activity = 0. then counter.Counter.zero_reactivity <- true else ();
-						if (comm_rank comm_world) = 0 then 
-							Quality.syncErrors := total_error :: !Quality.syncErrors;
-						
-						Counter.inc_sync counter;
-						state,story_profiling,event_list,env
-					)
+				(*finalize*)
+				if total_activity = 0. then counter.Counter.zero_reactivity <- true else ();
+				if (comm_rank comm_world) = 0 then 
+					Quality.syncErrors := total_error :: !Quality.syncErrors;
+				Counter.inc_sync counter;
+				state,story_profiling,event_list,env
 			end (** End-Synchronize **)
 			else 
 				(state,story_profiling,event_list,env)

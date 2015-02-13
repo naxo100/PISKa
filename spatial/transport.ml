@@ -195,7 +195,7 @@ let perts_of_transports transports counter env =
 			in
 				(i+1,p @ ps, e @ es, env)
 	) (0,[],[],env) transports
-	in pert_list,rule_list,env
+	in (pert_list,rule_list),env
 
 let apply_transport_effects state r kappa_cmpx counter env comp_map = 
 	match r.Dynamics.transport_to with 
@@ -273,8 +273,18 @@ let apply state (r,(comp,travel,joined)) embedding_t counter env comp_map =
 	in edit state r.Dynamics.script IntMap.empty Int2Set.empty IntSet.empty env
 
 
-
-	
-	
-	
+let add_perturbations (pert_list,rule_list) state =
+	let perts = 
+		List.fold_left (fun (perts) (p_id,pert) ->
+			IntMap.add p_id pert perts
+		) (state.State.perturbations) pert_list
+	and rules,_ =
+		List.fold_left (fun (rs,i) (r_opt,e) ->
+			match r_opt with 
+			| None -> rs,i
+			| Some r ->
+				Hashtbl.add rs (r.Dynamics.r_id) r; rs,i+1
+		) (state.State.rules, Hashtbl.length state.State.rules) rule_list
+	in
+	{state with State.rules=rules; State.perturbations = perts}
 

@@ -1,6 +1,4 @@
-
 open Random_tree
-
 
 let (syncErrors: float list ref) = ref []
 
@@ -75,16 +73,6 @@ let transport_error pre_act post_act average_delay =
 			in p *. average_delay
 	
 
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	
 	
