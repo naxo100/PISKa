@@ -324,8 +324,8 @@ let rec partial_eval_alg env ast =
 		let (f1, const1, opt_value1, dep1, lbl1) = partial_eval_alg env ast 
 		and (f2, const2, opt_value2, dep2, lbl2) = partial_eval_alg env ast' 
 		in
-		let part_eval inst values t e e_null cpu_t tk = (*evaluation partielle symbolique*)
-			let v1 = f1 inst values t e e_null cpu_t tk and v2 = f2 inst values t e e_null cpu_t tk in op v1 v2 
+		let part_eval inst values t e e_null act cpu_t tk = (*evaluation partielle symbolique*)
+			let v1 = f1 inst values t e e_null act cpu_t tk and v2 = f2 inst values t e e_null act cpu_t tk in op v1 v2 
 		in
 		let opt_value' = match opt_value1,opt_value2 with (Some a,Some b) -> Some (op a b) | _ -> None in (*evaluation complete si connue*)
 		let lbl = Printf.sprintf "(%s%s%s)" lbl1 op_str lbl2
@@ -336,7 +336,7 @@ let rec partial_eval_alg env ast =
 		let lbl = Printf.sprintf "%s(%s)" op_str lbl
 		in
 		let opt_v' = match opt_v with Some a -> Some (op a) | None -> None in
-		((fun inst values t e e_null cpu_t tk -> let v = f inst values t e e_null cpu_t tk in op v), const, opt_v',	dep, lbl)
+		((fun inst values t e e_null act cpu_t tk -> let v = f inst values t e e_null act cpu_t tk in op v), const, opt_v',	dep, lbl)
 	in
 	match ast with
 		| EMAX pos -> 
@@ -345,7 +345,7 @@ let rec partial_eval_alg env ast =
 					| None -> (ExceptionDefn.warning ~with_pos:pos "[emax] constant is evaluated to infinity" ; (Num.F infinity))
 					| Some n -> (Num.I n)
 			in
-			((fun _ _ _ _ _ _ _-> v), true, 
+			((fun _ _ _ _ _ _ _ _-> v), true, 
 			(fun opt -> match opt with Some a -> Some (Num.I a) | None -> Some (Num.F infinity)) 
 			!Parameter.maxEventValue, DepSet.empty, "e_max")
 		| TMAX pos -> 
@@ -354,15 +354,15 @@ let rec partial_eval_alg env ast =
 					| None -> (ExceptionDefn.warning ~with_pos:pos "[tmax] constant is evaluated to infinity" ; (Num.F infinity))
 					| Some t -> (Num.F t)
 			in
-			((fun _ _ _ _ _ _ _-> v), true, 
+			((fun _ _ _ _ _ _ _ _-> v), true, 
 			(fun opt -> match opt with Some a -> Some (Num.F a) | None -> Some (Num.F infinity)) !Parameter.maxTimeValue, 
 			DepSet.empty, "t_max") 
-		| INFINITY pos -> ((fun _ _ _ _ _ _ _-> (Num.F infinity)), true, Some (Num.F infinity), DepSet.empty, "inf")
+		| INFINITY pos -> ((fun _ _ _ _ _ _ _ _-> (Num.F infinity)), true, Some (Num.F infinity), DepSet.empty, "inf")
 		| FLOAT (f, pos) -> 
-				((fun _ _ _ _ _ _ _-> (Num.F f)), true, (Some (Num.F f)), DepSet.empty, (Printf.sprintf "%f" f))
+				((fun _ _ _ _ _ _ _ _-> (Num.F f)), true, (Some (Num.F f)), DepSet.empty, (Printf.sprintf "%f" f))
 		| INT (i ,pos) -> 
-			((fun _ _ _ _ _ _ _-> (Num.I i)), true, (Some (Num.I i)), DepSet.empty, (Printf.sprintf "%d" i))
-		| CPUTIME pos -> 	((fun _ _ _ _ _ cpu_t _-> Num.F (cpu_t -. !Parameter.cpuTime)), false, Some (Num.F 0.), (DepSet.singleton Mods.EVENT), "t_sim")
+			((fun _ _ _ _ _ _ _ _-> (Num.I i)), true, (Some (Num.I i)), DepSet.empty, (Printf.sprintf "%d" i))
+		| CPUTIME pos -> 	((fun _ _ _ _ _ _ cpu_t _-> Num.F (cpu_t -. !Parameter.cpuTime)), false, Some (Num.F 0.), (DepSet.singleton Mods.EVENT), "t_sim")
 		| OBS_VAR (lab,pos) -> 
   			begin 
   				try
@@ -374,28 +374,28 @@ let rec partial_eval_alg env ast =
   						(ExceptionDefn.Semantics_Error (pos,
   								lab ^ " is not a variable identifier"))
   				else
-  					((fun f _ _ _ _ _ _-> f i), false, Some (Num.I 0), 
+  					((fun f _ _ _ _ _ _ _-> f i), false, Some (Num.I 0), 
   						(DepSet.singleton (Mods.KAPPA i)), ("'" ^ (lab ^ "'")))
   			with Not_found -> (*lab is the label of an algebraic expression*)
   				let i,opt_v = 
   				try Environment.num_of_alg lab env with 
   					| Not_found -> raise (ExceptionDefn.Semantics_Error (pos,lab ^ " is not a declared variable"))
   				in
-  				((fun _ v _ _ _ _ _-> v i),false,opt_v,DepSet.singleton (Mods.ALG i),("'" ^ (lab ^ "'")))
+  				((fun _ v _ _ _ _ _ _-> v i),false,opt_v,DepSet.singleton (Mods.ALG i),("'" ^ (lab ^ "'")))
   			end
 		| TOKEN_ID (tk_nme,pos) -> 
   			let i = 
   				try Environment.num_of_token tk_nme env with Not_found -> raise (ExceptionDefn.Semantics_Error (pos,tk_nme ^ " is not a declared token"))
   			in
- 				((fun _ _ _ _ _ _ tk -> tk i),false,Some (Num.F 0.),DepSet.singleton (Mods.TOK i),("'" ^ (tk_nme ^ "'")))
+ 				((fun _ _ _ _ _ _ _ tk -> tk i),false,Some (Num.F 0.),DepSet.singleton (Mods.TOK i),("'" ^ (tk_nme ^ "'")))
 		| TIME_VAR pos ->
-				((fun _ _ t _ _ _ _-> Num.F t), false, Some (Num.F 0.), (DepSet.singleton Mods.TIME), "t")
+				((fun _ _ t _ _ _ _ _-> Num.F t), false, Some (Num.F 0.), (DepSet.singleton Mods.TIME), "t")
 		| EVENT_VAR pos ->
-				((fun _ _ _ e ne _ _-> Num.I (e+ne)), false, Some (Num.I 0),(DepSet.singleton Mods.EVENT), "e")
+				((fun _ _ _ e ne _ _ _-> Num.I (e+ne)), false, Some (Num.I 0),(DepSet.singleton Mods.EVENT), "e")
 		| NULL_EVENT_VAR pos ->
-			((fun _ _ _ _ ne _ _-> Num.I ne), false, Some (Num.I 0),(DepSet.singleton Mods.EVENT), "null_e")
+			((fun _ _ _ _ ne _ _ _-> Num.I ne), false, Some (Num.I 0),(DepSet.singleton Mods.EVENT), "null_e")
 		| PROD_EVENT_VAR pos ->
-			((fun _ _ _ e _ _ _-> Num.I e), false,Some (Num.I 0),	(DepSet.singleton Mods.EVENT), "prod_e")			
+			((fun _ _ _ e _ _ _ _-> Num.I e), false,Some (Num.I 0),	(DepSet.singleton Mods.EVENT), "prod_e")			
 		| DIV (ast, ast', pos) -> 
 			bin_op ast ast' pos (fun x y -> cast_op x y (fun a b -> a /. b) None None) "/"
 		| SUM (ast, ast', pos) -> bin_op ast ast' pos (fun x y -> cast_op x y (fun a b -> a +. b) (Some (fun a b -> a+b)) (Some (fun a b -> Int64.add a b))) "+"
@@ -423,14 +423,15 @@ let rec partial_eval_alg env ast =
 		| ABS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x None (Some abs) (Some Int64.abs)) "abs"
 		| LOG (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some log) None None) "log"
 		(***)| ATAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some atan) None None) "atan"
+		(***)| ACTIVITY_VAR (pos) -> ((fun _ _ _ _ _ act _ _-> Num.F act), false, Some (Num.F 0.), (DepSet.singleton Mods.EVENT), "Activity")
 
 let rec partial_eval_bool env ast =
 	let bin_op_bool ast ast' pos op op_str =
 		let (f1, const1, dep1, lbl1, _) = partial_eval_bool env ast
 		
 		and (f2, const2, dep2, lbl2, _) = partial_eval_bool env ast' in
-		let part_eval inst values t e e_null cpu_t tk =
-			let b1 = f1 inst values t e e_null cpu_t tk and b2 = f2 inst values t e e_null cpu_t tk in op b1 b2 in
+		let part_eval inst values t e e_null act cpu_t tk =
+			let b1 = f1 inst values t e e_null act cpu_t tk and b2 = f2 inst values t e e_null act cpu_t tk in op b1 b2 in
 		let lbl = Printf.sprintf "(%s %s %s)" lbl1 op_str lbl2
 		in (part_eval, (const1 && const2), (DepSet.union dep1 dep2), lbl, None)
 	
@@ -450,9 +451,9 @@ let rec partial_eval_bool env ast =
 					else None
 				| _ -> None
 		in 
-		let part_eval inst values t e e_null cpu_t tk =
-			let v1 = f1 inst values t e e_null cpu_t tk 
-			and v2 = f2 inst values t e e_null cpu_t tk 
+		let part_eval inst values t e e_null act cpu_t tk =
+			let v1 = f1 inst values t e e_null act cpu_t tk 
+			and v2 = f2 inst values t e e_null act cpu_t tk 
 			in
 			(*checking whether boolean expression has a time dependency and is of the form [T]=n*)
 			op v1 v2 
@@ -463,8 +464,8 @@ let rec partial_eval_bool env ast =
 		(part_eval, (const1 && const2), (DepSet.union dep1 dep2), lbl, stopping_time))
 	in
 	match ast with
-		| TRUE pos -> ((fun _ _ _ _ _ _ _-> true), true, DepSet.singleton Mods.EVENT, "true",None)
-		| FALSE pos -> ((fun _ _ _ _ _ _ _-> false), true, DepSet.empty, "false",None)	
+		| TRUE pos -> ((fun _ _ _ _ _ _ _ _-> true), true, DepSet.singleton Mods.EVENT, "true",None)
+		| FALSE pos -> ((fun _ _ _ _ _ _ _ _-> false), true, DepSet.empty, "false",None)	
 		| AND (ast, ast', pos) ->
 				bin_op_bool ast ast' pos (fun b b' -> b && b') "and"
 		| OR (ast, ast', pos) ->

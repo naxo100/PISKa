@@ -5,6 +5,7 @@ open ExceptionDefn
 open Graph
 open Mods
 open LargeArray
+open Random_tree
 
 let eval_pre_pert pert state counter env =
 	match pert.stopping_time with
@@ -18,8 +19,9 @@ let eval_pre_pert pert state counter env =
 				and v_of_token id = 
 					let x = try state.token_vector.(id) with _ -> failwith "External.eval_pre: Invalid token id"
 					in Num.F x
+				and act = Random_tree.total state.activity_tree 
 				in
-					(None,b_fun act_of_id v_of_id (Counter.time counter) (Counter.event counter) (Counter.null_event counter) (Sys.time()) v_of_token)
+					(None,b_fun act_of_id v_of_id (Counter.time counter) (Counter.event counter) (Counter.null_event counter) act (Sys.time()) v_of_token)
 
 let eval_abort_pert just_applied pert state counter env = 
 	match pert.abort with
@@ -31,8 +33,9 @@ let eval_abort_pert just_applied pert state counter env =
 			and v_of_token id = 
 				let x = try state.token_vector.(id) with _ -> failwith "External.eval_abort: Invalid token id"
 				in Num.F x
+			and act = Random_tree.total state.activity_tree 
 			in
-				b_fun act_of_id v_of_id (Counter.time counter) (Counter.event counter) (Counter.null_event counter) (Sys.time()) v_of_token
+				b_fun act_of_id v_of_id (Counter.time counter) (Counter.event counter) (Counter.null_event counter) act (Sys.time()) v_of_token
 
 let eval_pexpr pexpr state counter env =
 	let l =
@@ -302,9 +305,10 @@ let apply_effect p_id pert tracked pert_events state counter env =
 		 Num.F x
 	in
 	let eval_var v =
+		let act = Random_tree.total state.activity_tree in
 		match v with
 			| CONST f -> f
-			| VAR v_fun -> v_fun act_of_id v_of_id (Counter.time counter) (Counter.event counter) (Counter.null_event counter) (Sys.time()) v_of_token
+			| VAR v_fun -> v_fun act_of_id v_of_id (Counter.time counter) (Counter.event counter) (Counter.null_event counter) act (Sys.time()) v_of_token
 	in
 	let env, state, pert_ids,tracked,pert_events =
   	List.fold_left 

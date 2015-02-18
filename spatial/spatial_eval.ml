@@ -231,7 +231,7 @@ let validate cond_opt vars =
 			let ( f_val , const, _ , str_val , _ ) = Eval.partial_eval_bool env condition
 			and v_of_id = (fun id -> Mods.Num.I (List.assoc id vid_list) )
 			and f = (fun _ -> Mods.Num.I 0) 
-			in f_val f v_of_id 0. 0 0 0. f
+			in f_val f v_of_id 0. 0 0 0. 0. f
 			(*in
 			Debug.tag str_val;
 			Debug.tag (Tools.string_of_list (fun (a,b) -> a^" -> "^(string_of_int b) ) vars);

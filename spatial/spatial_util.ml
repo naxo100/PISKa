@@ -79,14 +79,14 @@ let show_timer () =
 	!time_table;
 	Debug.tag "\n"
 	
-let print_sync_info counter old_totals totals comps =
+let print_sync_info counter old_totals totals activity comps =
 	match counter.Counter.progress_step with
 		| None -> ()
 		| Some n -> 
 			Debug.tag "_______________________________________________";
-			Debug.tag (Printf.sprintf "Synchronization %d-%d\n\tSimulated-Time:\t%f\tTotal Events:\t%d\n\t---- Stats for this period ----\n\tReaction Ev: %d \tDiffusion Ev: %d\n\tAverage Events per Sync. per Compart. : %.1f\n\tTotal-Sync-Error:\t%f" 			
+			Debug.tag (Printf.sprintf "Synchronization %d-%d\n\tSimulated-Time:\t%f\tTotal Events:\t%d\t\tActivity:%f\n\t---- Stats for this period ----\n\tReaction Ev: %d \tDiffusion Ev: %d\n\tAverage Events per Sync. per Compart. : %.1f\n\tTotal-Sync-Error:\t%f" 			
 				((Counter.get_sync_count counter) - n + 1) (Counter.get_sync_count counter)
-				(Counter.time counter) (totals.(0))
+				(Counter.time counter) (totals.(0)) activity
 				(totals.(1) - old_totals.(1)) (totals.(2) - old_totals.(2))
 				(float(totals.(1)+totals.(2) - old_totals.(1)-old_totals.(2)) /. float(n) /. float(comps) )
 				(sum_floatlist !Quality.syncErrors))

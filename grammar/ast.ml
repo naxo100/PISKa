@@ -29,6 +29,7 @@ type alg_expr =
 	| CPUTIME of Tools.pos
 	| INFINITY of Tools.pos
 	(***)
+	| ACTIVITY_VAR of Tools.pos
 	| ATAN of alg_expr * Tools.pos
 
 type bool_expr =

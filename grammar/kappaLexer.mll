@@ -71,6 +71,7 @@ rule token = parse
 									| s -> return_error None lexbuf ("Perturbation effect \""^s^"\" is not defined")
 					 			}
 (***)
+			(***)| "[" blank* "A" blank* "]" { ACTIVITY (position lexbuf)}
 			| "[" blank* "E" blank* "]" { EVENT (position lexbuf)}
 			| "[" blank* "E+" blank* "]" { PROD_EVENT (position lexbuf)}
 			| "[" blank* "E-" blank* "]" { NULL_EVENT (position lexbuf)}
@@ -80,7 +81,7 @@ rule token = parse
 			| "[" blank* "sin" blank* "]" { SINUS (position lexbuf)}
 			| "[" blank* "cos" blank* "]" { COSINUS (position lexbuf)}
 			| "[" blank* "tan" blank* "]" { TAN (position lexbuf)}
-			| "[" blank* "atan" blank* "]" { ATAN (position lexbuf)}
+			(***)| "[" blank* "atan" blank* "]" { ATAN (position lexbuf)}
 			| "[" blank* "exp" blank* "]" { EXPONENT (position lexbuf)}
 			| "[" blank* "int" blank* "]" { ABS (position lexbuf)}
 			| "[" blank* "mod" blank* "]" { MODULO (position lexbuf)}

@@ -247,7 +247,7 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 				
 				(* Get perturbations from received transport Data*)
 				let perts, env = Transport.perts_of_transports transport_messages counter env in
-				let state,counter,total_error,total_activity =
+				let state,counter,total_activity,total_error =
 					match perts with
 					| [],[] ->
 						let result = Communication.allreduce_float_array [| (List.hd pre_activity_list) ; 0.0 |]
@@ -277,14 +277,14 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 				in
 				
 				(*print sync-info*)
+				if is_main() then 
+					Quality.syncErrors := total_error :: !Quality.syncErrors;
 				if Counter.show_progress counter && is_main() then
-					(Spatial_util.print_sync_info counter !buff_totals counter_totals (Hashtbl.length comp_map);
+					(Spatial_util.print_sync_info counter !buff_totals counter_totals total_activity (Hashtbl.length comp_map);
 					buff_totals := Array.copy counter.Counter.total_events;);
 				
 				(*finalize*)
 				if total_activity = 0. then counter.Counter.zero_reactivity <- true else ();
-				if (comm_rank comm_world) = 0 then 
-					Quality.syncErrors := total_error :: !Quality.syncErrors;
 				Counter.inc_sync counter;
 				state,story_profiling,event_list,env
 			end (** End-Synchronize **)

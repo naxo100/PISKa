@@ -185,9 +185,10 @@ let rec value state ?var var_id counter env =
 							let x = try state.token_vector.(id) with _ -> failwith "State.value: Invalid token id"
 							in
 							(Num.F x)
+						and act = Random_tree.total state.activity_tree 
 						in
 						v_fun act_of_id v_of_var (Counter.time counter)
-							(Counter.event counter) (Counter.null_event counter) (Sys.time()) v_of_token
+							(Counter.event counter) (Counter.null_event counter) act (Sys.time()) v_of_token
 			)
 			
 (*missing recomputation of dependencies*)
@@ -213,10 +214,11 @@ let eval_activity ?using rule state counter env =
 					and v_of_token id = 
 						let x = try state.token_vector.(id) with _ -> failwith "State.value: Invalid token id"
 						in Num.F x
+					and act = Random_tree.total state.activity_tree 
 					in
 					let k =
 						k_fun act_of_id v_of_var (Counter.time counter)
-							(Counter.event counter) (Counter.null_event counter) (Sys.time()) v_of_token
+							(Counter.event counter) (Counter.null_event counter) act (Sys.time()) v_of_token
 					in
 					let n = (match using with None -> instance_number mix_id state env | Some x -> Num.I x) in
 					if Num.is_zero n then (Num.I 0)
@@ -242,8 +244,9 @@ let eval_activity ?using rule state counter env =
 							and v_of_token id = 
 								let x = try state.token_vector.(id) with _ -> failwith "State.value: Invalid token id"
 								in Num.F x
+							and act = Random_tree.total state.activity_tree 
 							in
-							let k =	k_fun act_of_id v_of_var (Counter.time counter) (Counter.event counter) (Counter.null_event counter) (Sys.time()) v_of_token 
+							let k =	k_fun act_of_id v_of_var (Counter.time counter) (Counter.event counter) (Counter.null_event counter) act (Sys.time()) v_of_token 
 							in
 							let n = nl_instance_number mix_id state env in
 							if Num.is_zero n then (Num.I 0)

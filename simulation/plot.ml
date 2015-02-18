@@ -1,6 +1,7 @@
 open State
 open Mods
 open ExceptionDefn
+open Random_tree
 
 type t = {
 	mutable desc:out_channel option ; 
@@ -60,11 +61,12 @@ let output state time event plot env counter =
 				and v_of_token id = 
 					let x = try state.State.token_vector.(id) with _ -> failwith "Plot.output: Invalid token id"
 					in Num.F x
+				and act = Random_tree.total state.State.activity_tree 
 				in
 					let v = 
 						match obs.expr with
 							| Dynamics.CONST v -> v
-							| Dynamics.VAR f -> f inst values time event (Counter.null_event counter) (Sys.time()) v_of_token
+							| Dynamics.VAR f -> f inst values time event (Counter.null_event counter) act (Sys.time()) v_of_token
 					in 
 					match v with
 						| Num.I x -> Printf.fprintf d "%c%d" !Parameter.plotSepChar x
