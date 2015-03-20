@@ -16,7 +16,7 @@ SOURCES = \
 		simulation/state.ml simulation/nonLocal.ml grammar/eval.ml simulation/external.ml  \
 		cflow/graph_closure.ml \
 		cflow/priority.ml \
-		cflow/cflow_handler.ml cflow/profiling.ml cflow/causal.ml  \
+		cflow/cflow_handler.ml cflow/profiling2.ml cflow/causal.ml  \
 		cflow/kappa_instantiation.ml cflow/po_cut.ml cflow/pseudo_inverse.ml cflow/blackboard_generation.ml cflow/blackboard.ml cflow/propagation_heuristics.ml \
 		cflow/generic_branch_and_cut_solver.ml cflow/dag.ml cflow/dag2.ml cflow/compression_main.ml  simulation/plot.ml Error/safe.ml \
 		dataStructures/linear.ml \
@@ -46,11 +46,11 @@ install:
 
 #OCAMLBINPATH = /opt/local/bin/
 
-OCAMLCP = $(OCAMLBINPATH)ocamlcp
+OCAMLCP = $(OCAMLBINPATH)ocamlc
 OCAMLLEX = $(OCAMLBINPATH)ocamllex
 OCAMLYACC = $(OCAMLBINPATH)ocamlyacc
-OCAMLC = $(OCAMLBINPATH)ocamlc unix.cma mpi.cma #-ccopt -L. #-cclib -lmpich -cclib -lmpl -cclib -lopa
-OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I `$(OCAMLC) -where`/../mpi unix.cmxa mpi.cmxa str.cmxa #-ccopt -L$(HOME)/usr/lib #-cclib -lmpich -cclib -lmpl -cclib -lopa #-g -ccopt -g -ccopt -pg
+OCAMLC = $(OCAMLBINPATH)ocamlc unix.cma mpi.cma # 
+OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I `$(OCAMLC) -where`/../mpi unix.cmxa mpi.cmxa str.cmxa #-p #-g -ccopt -g -ccopt -pg
 OCAMLDEP = $(OCAMLBINPATH)ocamldep unix.cma mpi.cma 
 CC = mpicc.openmpi
 

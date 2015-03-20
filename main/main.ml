@@ -233,7 +233,7 @@ let main =
 (**HERE**)	Run.loop state profiling event_list counter plot env comp_id comp_map; (** HERE **)
 	
 			Mpi.barrier comm_world;
-			if myrank = 0 then Spatial_util.show_timer ();
+			Spatial_util.show_timer ();
 			let output_string = 
 				[| format_of_string "\t#Valid embedding but no longer unary when required: %f\n" ;
 					format_of_string "\t#Valid embedding but not binary when required: %f\n" ;

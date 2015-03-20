@@ -94,13 +94,9 @@ let pert_of_transport_string agent_str num arr_time counter from env =
 	let r_id = Mixture.get_id lhs in
 	let (script,balance,added,modif_sites) = 
 		Dynamics.diff Tools.no_pos lhs agent (Some (str_pert,Tools.no_pos)) env in
-	let dep = DepSet.singleton Mods.TIME in
-	(*let env = Environment.declare_rule (Some (str_pert,Tools.no_pos)) r_id env in*)
+	let env = Environment.declare_rule (Some (str_pert,Tools.no_pos)) r_id env in
 	
-	let env =
-		DepSet.fold (fun dep env -> 
-			Environment.add_dependencies dep (Mods.PERT p_id) env
-		) dep env 
+	let env = Environment.add_dependencies Mods.TIME (Mods.PERT p_id) env
 	in
 	
 	let pre_causal = Dynamics.compute_causal lhs agent script env in 
@@ -176,7 +172,7 @@ let perts_of_transports transports counter env =
 			let ps,es,env = 
 				Hashtbl.fold (fun mixt_str (late_count,late_sum,arrival_list) (ps,es,env) ->
 					(*Debug.tag (Printf.sprintf "%d: [%s] Llegan %d atrasados y %d adelantados"
-						(comm_rank comm_world) mixt_str late_count ((List.length arrival_list)) );*)
+						(Mpi.comm_rank Mpi.comm_world) mixt_str late_count ((List.length arrival_list)) );*)
 					let (perts,efcts,env) = (* Transport every agent at its time *)
 						List.fold_left (fun (ps,es,env) arriv_time -> 
 							let (p,e,env) = pert_of_transport_string mixt_str 1 arriv_time counter i env

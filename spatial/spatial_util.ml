@@ -51,15 +51,18 @@ let rec sum_floatlist l = match l with
 			
 let time_table = ref (Hashtbl.create 10)
 
+(**	Starts a timer at this point of execution with a tag*)
 let start_timer tag =
 	Hashtbl.add !time_table tag (Unix.gettimeofday())
 
+(**	Stops the timer 'tag' and saves in time table*)
 let stop_timer tag =
 	let start = Hashtbl.find !time_table tag in
 	let interval = (Unix.gettimeofday ()) -. start in
 	Hashtbl.replace !time_table tag interval;
 	interval
 
+(** Stops the timer 'tag' and adds it in time table*)
 let stop_sum_timer tag =
 	let start = Hashtbl.find !time_table tag in
 	let interval = (Unix.gettimeofday ()) -. start in
@@ -68,6 +71,7 @@ let stop_sum_timer tag =
 	Hashtbl.replace !time_table tag (interval+.sum);
 	interval
 	
+(**	Show all timers*)
 let show_timer () =
 	let curr_lab = ref "" in
 	Hashtbl.iter (fun label time ->

@@ -217,7 +217,9 @@ let event state (*grid*) story_profiling event_list counter plot env (***)comp_m
 		counter.Counter.perturbation_events <- cpt ;
 		(state,story_profiling,event_list,env)
 	(*** end of else-1 *)end
- 						
+
+
+				
 let loop state story_profiling event_list counter plot env (***)comp_name comp_map =
 	(*Before entering the loop*)
 	Counter.tick counter counter.Counter.time counter.Counter.events ;
@@ -247,11 +249,11 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 				
 				(* Get perturbations from received transport Data*)
 				let perts, env = Transport.perts_of_transports transport_messages counter env in
-				let state,counter,total_activity,total_error =
+				let state,env,counter,total_activity,total_error =
 					match perts with
 					| [],[] ->
 						let result = Communication.allreduce_float_array [| (List.hd pre_activity_list) ; 0.0 |]
-						in state,counter,result.(0),result.(1)
+						in state,env,counter,result.(0),result.(1)
 					| pert_list,rule_list ->
 						let state = Transport.add_perturbations perts state in
 						Counter.next_sync counter;
@@ -273,7 +275,7 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 							let delay = Quality.average_delay transport_messages in
 							let error = Quality.transport_error pre_activity_list post_activity_list delay in
 							let result = Communication.allreduce_float_array [| (List.hd pre_activity_list) ; error |]
-							in state,counter,result.(0),result.(1)
+							in state,env,counter,result.(0),result.(1)
 				in
 				
 				(*print sync-info*)
