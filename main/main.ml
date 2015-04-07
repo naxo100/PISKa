@@ -152,7 +152,7 @@ let main =
 								let pack = (Marshal.from_channel d : 
 									((string * int) * (int list) * Environment.t * State.implicit_state) array ) in
 								if Array.length pack != world_size then
-									raise (Mpi.Error "Mpi processes quantity must be equal to compartments.");
+									raise (Mpi.Error ("Mpi processes quantity must be equal to compartments. Mpi_world size = "^(string_of_int world_size)));
 								pack
 							end
 							else [||]

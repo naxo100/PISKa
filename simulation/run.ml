@@ -262,6 +262,7 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 						
 						let state,env = Communication.update_state state env counter in
 						let env,pert_ids_time = State.update_dep state (-1) Mods.TIME IntSet.empty counter env in
+						(*Debug.tag ("DepSet: "^(string_of_set string_of_dep DepSet.fold (Environment.get_dependencies Mods.TIME env)) );*)
 						let state,env,obs,events,_ =
 							External.try_perturbate [] state pert_ids_time [] counter env 
 						in 
