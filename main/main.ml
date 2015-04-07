@@ -133,7 +133,7 @@ let main =
 			match !Parameter.marshalizedInFile with
 				| "" -> (** RECEIVE RESULT **)
 					if myrank = 0 && List.length compils != world_size then
-						raise (Mpi.Error "Mpi processes quantity must be equal to compartments.");
+						raise (Mpi.Error ("Mpi processes quantity must be equal to compartments. Mpi_world size = "^(string_of_int world_size)));
 					check_mpi_processes 0 "Mpi options: Ok";
 					let (comp_id,result) = scatter (Array.of_list compils) 0 comm_world in
 					let env,state = Eval.initialize result counter
