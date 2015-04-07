@@ -1,1 +1,10 @@
 *~
+*.cmx
+*.cmi
+*.o
+*.annot
+*.mli
+._*
+grammar/kappaParser.ml
+grammar/kappaLexer.ml
+PISKa
