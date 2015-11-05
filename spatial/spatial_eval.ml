@@ -375,7 +375,7 @@ let eval_links compartments links =
 					(* If all var values are float and eval to cell then true *)
 					if List.for_all (fun flt -> flt = ceil flt) solved then
 						let vars_values = List.combine var_order1 (List.map (fun flt -> int_of_float(flt)) solved) in
-						[cname,index_expr_to_cells ~vars_values:vars_values index_expr2 cond2 dims2]
+						[c2,index_expr_to_cells ~vars_values:vars_values index_expr2 cond2 dims2]
 					else []
 				else []
 				and l2 = if is_bidirectional && c2 = cname && List.exists (fun c -> c = cell) cell_list2 then
@@ -383,7 +383,7 @@ let eval_links compartments links =
 					(* If all var values are float and eval to cell then true *)
 					if List.for_all (fun flt -> flt = ceil flt) solved then
 						let vars_values = List.combine var_order2 (List.map (fun flt -> int_of_float(flt)) solved) in
-						[cname,index_expr_to_cells ~vars_values:vars_values index_expr1 cond1 dims1]
+						[c1,index_expr_to_cells ~vars_values:vars_values index_expr1 cond1 dims1]
 					else []
 				else []
 				in l1 @ l2
@@ -476,10 +476,13 @@ let initialize_glob result_glob =
 							(* Ajuste por volumen *)
 							let rule' = 
 								if rule.Ast.fixed = false then
+									let arity = arity_of_astmix rule.Ast.lhs in
+									(*match label.Ast.lbl_nme with | None -> () | Some (s,_) ->
+										if arity != 1 then Debug.tag("rule: "^s^"\tarity:"^(string_of_int arity)^"\tvol: "^(string_of_float (match vol with | Ast.FLOAT (f,_) -> f | _ -> 0.0))));**)
 									{rule with 
 										Ast.k_def = Ast.MULT 
 											(Ast.POW ( vol ,Ast.FLOAT (
-												float_of_int (1-(arity_of_astmix rule.Ast.lhs)),Tools.no_pos),
+												float_of_int (1-arity),Tools.no_pos),
 												Tools.no_pos ),
 											 rule.Ast.k_def, Tools.no_pos
 											)
@@ -489,42 +492,46 @@ let initialize_glob result_glob =
 							in (label,rule') :: r_list
 						else r_list
 					) [] result_glob.Ast.rules_g
-				in let local_transports = (*TODO*)
+				in let local_transports = 
 					let fresh_id = ref 0 in
-					List.fold_left (fun trans_list ( (lname,_), mixt, expr, joined, pos ) -> (*iter transports*)
+					List.fold_left (fun trans_list ( (lname,_), mixt, trans_rate, joined, pos ) -> (*iter transports*)
+						(*TODO match fixed rates*)
+						let scaled_trans_rate = Ast.DIV(trans_rate,vol,Tools.no_pos) in
 						List.fold_left (fun t_link_list (func_get_links,travel) -> (*iter links 'lname'*)
+							let dest_cells = func_get_links cname cnum in
+							let length_dest_ast = Ast.FLOAT (float_of_int (cell_list_length dest_cells),Tools.no_pos) in
 							(List.map (fun (cname2,cells) -> (*iter destination cells*)
 								List.fold_left (fun t_rules cell ->
 								if cname = cname2 && cnum = cell then
 									(Printf.printf "*** (%s) line %d, char %d: declaration implies 'self to self' transport.(aborting)\n" 
 										(fn pos) (ln pos) (cn pos); t_rules)
 								else
-								(*if lname="cytosol-diffusion" && (cell = 13 || cnum = 13) then
-									[]
-								else*)
-								match mixt with
-							| Ast.COMMA(agent,mixture) -> 
-									fresh_id := !fresh_id+1;
-									({
-									Ast.lbl_nme = Some ("TRANSPORT-"^lname^" #"^(string_of_int !fresh_id),Tools.no_pos);
-									Ast.lbl_ref = None;
-									},{
-									Ast.rule_pos = pos;
-									Ast.lhs = mixt;
-									Ast.rm_token = [];
-									Ast.arrow = Ast.RAR Tools.no_pos;
-									Ast.rhs = Ast.EMPTY_MIX;
-									Ast.add_token = [];
-									Ast.k_def = expr;
-									Ast.k_un = None;
-									Ast.k_op = None;
-									Ast.transport_to = Some ((cname2,cell),travel,joined);
-									Ast.use_id = -1;
-									Ast.fixed = true;
-									}) :: t_rules
-							| _ -> Debug.tag "Transport Rule with no Agent\n" ;exit 1
-							) [] cells
-							) (func_get_links cname cnum) ) @ t_link_list 
+									match mixt with
+									| Ast.COMMA(agent,mixture) -> 
+										(*Debug.tag("Creating diffusion rule: "^cname^"["^(string_of_int cnum)^"] -> "^cname2^"["^(string_of_int cell)^"]");*)	
+										(*Debug.tag ("length_dest"^ (string_of_int (cell_list_length dest_cells)));*)
+										fresh_id := !fresh_id+1;
+										({
+										Ast.lbl_nme = Some ("TRANSPORT-"^lname^" #"^(string_of_int !fresh_id),Tools.no_pos);
+										Ast.lbl_ref = None;
+										},{
+										Ast.rule_pos = pos;
+										Ast.lhs = mixt;
+										Ast.rm_token = [];
+										Ast.arrow = Ast.RAR Tools.no_pos;
+										Ast.rhs = Ast.EMPTY_MIX;
+										Ast.add_token = [];
+										(*TODO add surface expr*)
+										Ast.k_def = Ast.DIV(scaled_trans_rate, length_dest_ast , Tools.no_pos);
+										Ast.k_un = None;
+										Ast.k_op = None;
+										Ast.transport_to = Some ((cname2,cell),travel,joined);
+										Ast.use_id = -1;
+										Ast.fixed = true;
+										}) :: t_rules
+									| _ -> Debug.tag "Transport Rule with no Agent\n" ;exit 1
+								) [] cells
+							) dest_cells ) @ t_link_list 
 						) [] (Hashtbl.find_all result_links lname)
 						@ trans_list
 					) [] result_glob.Ast.transports

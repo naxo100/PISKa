@@ -325,8 +325,9 @@ module Counter =
 		let sync_event c = c.sync_event_dt
 		let set_sync_event c dt = c.sync_event_dt <- dt
 		let update_sync_event c dA old_A = 
-			if c.sync_event_dt = infinity && dA >= 0. then 0.0
-			else old_A *. c.sync_event_dt /. (old_A +. dA)
+			c.sync_event_dt <-  
+				if c.sync_event_dt = infinity && dA >= 0. then 0.0
+				else old_A *. c.sync_event_dt /. (old_A +. dA)
 		let need_sync c = c.sync_event_dt > 0.0
 		let check_last_sync c = match c.max_time with 
 			| Some max_t -> c.sync_time *. (float_of_int (c.sync_count-1)) (*c.time*) < max_t
