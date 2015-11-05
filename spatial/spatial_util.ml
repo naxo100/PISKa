@@ -32,11 +32,16 @@ let cell_to_indexlist cell dims =
 	in List.rev (to_indexlist cell (List.rev dims) total)
 	
 
+let cell_list_length cells_list =
+	List.fold_left (fun n (_,cells) -> n + (List.length cells) ) 0 cells_list
+
 
 let string_of_comp ?(dims_opt) (cname,cnum) =
 	match dims_opt with
 		| None ->
 			cname ^ "{" ^ (string_of_int cnum) ^ "}"
+		| Some [] ->
+			cname
 		| Some dims ->
 			let indexlist = cell_to_indexlist cnum dims 
 			in cname ^ "["^(String.concat "][" (List.rev_map string_of_int (List.rev indexlist)))^"]"

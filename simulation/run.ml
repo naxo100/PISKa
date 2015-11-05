@@ -275,10 +275,10 @@ let loop state story_profiling event_list counter plot env (***)comp_name comp_m
 							(*Error*)
 							let delay = Quality.average_delay transport_messages in
 							let error = Quality.transport_error pre_activity_list post_activity_list delay in
-							let result = Communication.allreduce_float_array [| (List.hd pre_activity_list) ; error |]
+							let result = Communication.allreduce_float_array [| (List.hd post_activity_list) ; error |]
 							in state,env,counter,result.(0),result.(1)
 				in
-				
+				(*Debug.tag ((string_of_int (comm_rank comm_world))^" Activity's:"^(string_of_float (List.hd pre_activity_list)));*)
 				(*print sync-info*)
 				if is_main() then 
 					Quality.syncErrors := total_error :: !Quality.syncErrors;
