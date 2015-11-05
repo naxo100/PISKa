@@ -81,19 +81,24 @@ rule token = parse
 			| "[" blank* "sin" blank* "]" { SINUS (position lexbuf)}
 			| "[" blank* "cos" blank* "]" { COSINUS (position lexbuf)}
 			| "[" blank* "tan" blank* "]" { TAN (position lexbuf)}
-			(***)| "[" blank* "atan" blank* "]" { ATAN (position lexbuf)}
 			| "[" blank* "exp" blank* "]" { EXPONENT (position lexbuf)}
-			| "[" blank* "int" blank* "]" { ABS (position lexbuf)}
+			| "[" blank* "abs" blank* "]" { ABS (position lexbuf)}
 			| "[" blank* "mod" blank* "]" { MODULO (position lexbuf)}
 			| "[" blank* "sqrt" blank* "]" { SQRT (position lexbuf)}
 			| "[" blank* "inf" blank* "]" { INFINITY (position lexbuf)}
 			| "[" blank* "true" blank* "]" { TRUE (position lexbuf)}
 			| "[" blank* "false" blank* "]" { FALSE (position lexbuf)}
 			| "[" blank* "pi" blank* "]" { FLOAT (3.14159265,(position lexbuf))}
+
 			| "[" blank* "max" blank* "]" { MAX (position lexbuf) }
 			| "[" blank* "min" blank* "]" { MAX (position lexbuf) }
 			| "[" blank* "Emax" blank* "]" { EMAX (position lexbuf)}
 			| "[" blank* "Tmax" blank* "]" { TMAX (position lexbuf)}
+			(***)
+			| "[" blank* "atan" blank* "]" { ATAN (position lexbuf)}			
+			| "[" blank* "flip-coin" blank* "]" {COIN (position lexbuf)}
+			| "[" blank* "randn" blank* "]" {RAND_N (position lexbuf)}
+			| "[" blank* "rand1" blank* "]" {RAND_1 (position lexbuf)}
 (***)
 		| ':' {TYPE}
 		| ';' {SEMICOLON}

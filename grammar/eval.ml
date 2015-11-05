@@ -422,9 +422,14 @@ let rec partial_eval_alg env ast =
 		| SQRT (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some sqrt) None None) "sqrt"
 		| ABS (ast, pos) -> un_op ast pos (fun x -> cast_un_op x None (Some abs) (Some Int64.abs)) "abs"
 		| LOG (ast, pos) -> un_op ast pos (fun x -> cast_un_op x (Some log) None None) "log"
-		(***)| ATAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some atan) None None) "atan"
-		(***)| ACTIVITY_VAR (pos) -> ((fun _ _ _ _ _ act _ _-> Num.F act), false, Some (Num.F 0.), (DepSet.singleton Mods.EVENT), "Activity")
-
+		(***)
+		| ATAN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some atan) None None) "atan"
+		| ACTIVITY_VAR (pos) -> ((fun _ _ _ _ _ act _ _-> Num.F act), false, Some (Num.F 0.), (DepSet.singleton Mods.EVENT), "Activity")
+		| COIN (ast,pos) -> un_op ast pos (fun x -> cast_un_op x (Some (fun x -> if (Random.float 1.0) < x then 1.0 else 0.0)) None None) "coin"
+		| RAND_N (ast,pos) -> un_op ast pos (fun x -> cast_un_op x None (Some Random.int) None) "rand(n)"
+		| RAND_1 (pos) -> ((fun _ _ _ _ _ _ _ _-> Num.F (Random.float 1.0)), false, Some (Num.F 0.), (DepSet.empty), "rand(1)")
+		(***)
+		
 let rec partial_eval_bool env ast =
 	let bin_op_bool ast ast' pos op op_str =
 		let (f1, const1, dep1, lbl1, _) = partial_eval_bool env ast

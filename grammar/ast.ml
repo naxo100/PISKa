@@ -31,6 +31,10 @@ type alg_expr =
 	(***)
 	| ACTIVITY_VAR of Tools.pos
 	| ATAN of alg_expr * Tools.pos
+	| COIN of alg_expr * Tools.pos
+	| RAND_N of alg_expr * Tools.pos
+	| RAND_1 of Tools.pos
+(*	| INT_BOOL of bool_expr * Tools.pos*)
 
 type bool_expr =
 	| TRUE of Tools.pos
