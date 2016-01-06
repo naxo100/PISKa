@@ -1,7 +1,9 @@
 # PISKa
 
 PISKa is a Parallel Implementation of Spatial Kappa, based on 
-KaSim, a stochastic simulator for rule-based models.
+KaSim, a stochastic simulator for rule-based models. With PISKa you can create 'compartments' connected
+by 'links', and create 'transports' instructions among 'compartments'. This is useful when you have a non
+homogeneous space. PISKa is highly scalable due to it MPI implementation, what allow you to create many compartments and run your simulation in many cores.
 
 ## Installation
 
