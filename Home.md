@@ -9,7 +9,7 @@ To install follow the nexts steps:
 
 As root
  
-1 Install Opam (in Ubuntu 14.04)
+* Install Opam (in Ubuntu 14.04)
 
 `add-apt-repository ppa:avsm/ppa`
 
@@ -17,25 +17,29 @@ As root
 
 `apt-get install ocaml ocaml-native-compilers camlp4-extra opam m4`
 
-2 aptitude install libopenmpi1.6
+* aptitude install libopenmpi1.6
 
-3 aptitude install openmpi-bin
+* aptitude install openmpi-bin
 
-4 aptitude install libopenmpi-dev
+* aptitude install libopenmpi-dev
 
 Now, NOT as root
-2-2- Install OCaml, with opam init --comp 4.02.1
-3- opam config env
-4- opam install mpi
-5- make in PISKa directory
+*  Install OCaml, with opam init --comp 4.02.1
+
+* opam config env
+
+* opam install mpi
+
+* `make` in PISKa directory
 
 This should produce PISKa binaries. You will need your own plotting program (like gnuplot) to visualize curves.
 
 If step 5 doesn't works (Error: Unbound module Mpi), you should change
 the path in the Makefile to aims to OCaml mpi, ie,
 
-OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I PATH_TO_YOUR_OPAM_MPI/.opam/SOMETHING/lib/mpi  unix.cmxa mpi.cmxa str.cmxa #-p #-g -ccopt -g -ccopt -pg 
+`OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I PATH_TO_YOUR_OPAM_MPI/.opam/SOMETHING/lib/mpi  unix.cmxa mpi.cmxa str.cmxa #-p #-g -ccopt -g -ccopt -pg` 
 
+and run `make` again.
 
 ## Usage
 
@@ -80,9 +84,9 @@ The transport defines a rate of agents per unit of time traveling in a link. To 
 
 and if we want to move joints or separated agents we write
 
-`%transport: <move-join> 'link_name' agentA() @0.2`
+`%transport: <move-join> 'link_name' agentA() @ 0.2`
 
-`%transport: <move-free> 'link_name' agentB() @0.7`
+`%transport: <move-free> 'link_name' agentB() @ 0.7`
 
 where agentA will move with any agent join to it and agentB will separate and move alone.
 
