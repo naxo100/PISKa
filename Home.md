@@ -103,6 +103,13 @@ where we initialize the compartmentA with 100 agents of name 'agentA()'. The ins
 
 *The unit of time is defined in the model by the rates, it can be seconds, weeks, years, etc.
 
+###Fixed rates in rules
+If you want to fix a rate, ie, you don't want it depends on volume of a compartment, you use `@*`, for instance
+
+`'ruleName' agentA(),agentB() -> agentC() @* 1.5`
+
+will fix the rate of this rule at 1.5, independently of the size of compartment.
+
 ##Kappa Syntax
 The next information is available in KaSim/Kappa documentation, but we put here a brief resume to a fast implementation of a model in PISKa.
 
@@ -163,6 +170,9 @@ and it will display two columns with the respective number of agents in its resp
 You can find a more detailed description about kappa language here:
 
 http://www.kappalanguage.org/syntax.html
+
+##Example
+Here we present a very simple model
 
 ##ERRORS
 ExceptionDefn.Semantics_Error(_, "Rule name Transport 1 superman() at 1.393503 (2,1) is already used") 
