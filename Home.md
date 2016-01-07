@@ -136,7 +136,15 @@ in this case agentA and agentB joint and create the agentC with a rate of 1.5. I
 
 `'ruleName' agentA(c~A), agentB(c~B) -> agentA(c~B), agentB(c~B) @ 0.5`
 
-where the interaction among agentA and agentB change the state of site c (from A to B) of agentA with a rate of 0.5. If the rate is replaced with an '[inf]', the reaction will always occur.
+where the interaction among agentA and agentB change the state of site c (from A to B) of agentA with a rate of 0.5. If the rate is replaced with an '[inf]', the reaction will always occur. Note that the rules are commutatives, ie, 
+
+`'ruleName' agentA(),agentB() -> agentC() @ 1.5`
+
+is equal to
+
+`'ruleName' agentB(),agentA() -> agentC() @ 1.5`
+
+so you don't have to define two operations.
 
 ###Variables
 We can define some variables in the following way
