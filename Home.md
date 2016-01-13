@@ -61,6 +61,7 @@ for a complete list of options.
 
 ###Compartment: 
 To create a compartment of name 'compartmentA' and volume 1 we write:
+
 `%compartment: 'compartmentA' 1`
 
 and a matrix of 4x4 and each compartment of volume 1.5
@@ -78,6 +79,8 @@ where only the agents presents in 'compartmentA' can travel to 'compartmentB' wi
 `%link: 'link_name' 'compartmentA' <-> 'compartmentB' $1`
 
 where agents in both compartment can move in any direction.
+
+*The unit of time is defined in the model by the rates, it can be seconds, weeks, years, etc.
 
 ###Transport:
 The transport defines a rate of agents per unit of time traveling in a link. To set a rate of 1.3 to agent 'agentA()' in a link called 'link_name' we write
@@ -101,10 +104,9 @@ The use instruction is to define the compartment that will be used, and set the 
 
 where we initialize the compartmentA with 100 agents of name 'agentA()'. The instruction must go immediately after the instruction %use.
 
-*The unit of time is defined in the model by the rates, it can be seconds, weeks, years, etc.
 
 ###Fixed rates in rules
-If you want to fix a rate, ie, you don't want it depends on volume of a compartment, you use `@*`, for instance
+If you want to fix a rate, ie, you don't want it depends on the volume of a compartment, you use `@*`, for instance
 
 `'ruleName' agentA(),agentB() -> agentC() @* 1.5`
 
@@ -125,7 +127,7 @@ We can joint two agents, binding by a site, in the following way
 
 `agentA(s~T, c!1), agentB(s~U, d!1)`
 
-what means that agentA and agentB are binding each other by the c and d site respectively. The sign ! and it consecutive number makes the binding.
+that means that agentA and agentB are binding each other by the c and d site respectively. The sign ! and it consecutive number makes the binding.
   
 ###Rules
 The rules are what governs the agents interactions. A rules syntaxs is given by
@@ -151,7 +153,7 @@ We can define some variables in the following way
 
 `%var: 'varName' 50`
 
-what is the same to varName=50. We can also do something like
+which is the same to varName=50. We can also do something like
 
 `%var: 'agentNumberA' agentA()`
 
