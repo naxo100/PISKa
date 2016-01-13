@@ -13,11 +13,11 @@ As root
  
 * Install Opam (in Ubuntu 14.04, for other OS visit http://opam.ocaml.org/doc/Install.html)
 
-`add-apt-repository ppa:avsm/ppa`
+    `add-apt-repository ppa:avsm/ppa`
 
-`apt-get update`
+    `apt-get update`
 
-`apt-get install ocaml ocaml-native-compilers camlp4-extra opam m4`
+    `apt-get install ocaml ocaml-native-compilers camlp4-extra opam m4`
 
 * aptitude install libopenmpi1.6
 
@@ -98,9 +98,8 @@ where agentA will move with any agent join to it and agentB will separate and mo
 ###Use:
 The use instruction is to define the compartment that will be used, and set the initial conditions of it. If we want to initialize a compartment we write
 
-`%use: 'compartmentA'`
-
-`%init: 100 agentA() #define the number of agents` 
+    %use: 'compartmentA'
+    %init: 100 agentA() #define the number of agents
 
 where we initialize the compartmentA with 100 agents of name 'agentA()'. The instruction must go immediately after the instruction %use.
 
@@ -166,9 +165,8 @@ We can define the output of our simulation in the following way
 
 this will show in a column the numbers of agents with name agentA and site c in state S. This can be done with many agents
 
-`%obs: 'varOutNameA' agentA(c~S)`
-
-`%obs: 'varOutNameB' agentB(c~R)`
+    %obs: 'varOutNameA' agentA(c~S)
+    %obs: 'varOutNameB' agentB(c~R)
 
 and it will display two columns with the respective number of agents in its respective states.
 
@@ -182,7 +180,48 @@ You can find a more detailed description about kappa language here:
 http://www.kappalanguage.org/syntax.html
 
 ##Example
-Here we present a very simple model
+Here we present a little and simple example of PISKa. It represent how an infection is spread in a population, with no control. This is a incomplete model, but it useful to understand how to implement something in PISKa. For a complete model visit here (PUT LINK TO A COMPLETE SIR MODEL).
+
+    #We create 2 cities, the first with volume 1 and the second with volume 2
+    %compartment: 'cityA' 1 
+    %compartment: 'cityB' 2
+
+    #Here we create a bidirectional connection between cityA and cityB, with delay time 1
+    %link: 'highway' 'cityA' <-> 'cityB' $1
+
+    #We define who can transport between cities and how often. In this case all persons can travel
+    #between cityA and cityB by the link 'highway', with a rate of 0.01
+    %transport: 'highway' person() @ 0.01
+
+    #We create an agent person with a site 's' (it can be any letter) with states S (susceptible) and I (infected) 
+    %agent: person(s~S~I)
+
+    #Rules
+    #We define that when 2 person meet, one in state 'S' and other in state 'I', then the 
+    #the person in state 'S' will become 'I' with a rate of 0.001
+    'contact1' person(s~S), person(s~I) -> person(s~I), person(s~I) @ 0.001
+
+    #Now we initialize the cities
+    #First cityA, with 1000 healthy people and 1 infected
+    %use: 'cityA'
+    %init: 1000 person(s~S)
+    %init: 1 person(s~I)
+
+    #Now the cityB, with 1500 healthy people and no one infected
+    %use: 'cityB'
+    %init: 1500 person(s~S)
+
+    #And finally we define the output variables
+    %use: 
+    %obs: 'person_S' person(s~S)
+    %obs: 'person_I' person(s~I)
+
+
+Now to run this simulation we execute:
+
+`mpirun -n 2 PISKa -i simple_example.cka -t 100 -p 100 -sync-t 1`
+
+where -n 2 is the number of cities (and processors where it will run), -i is the input file that we called, in this case, 'simple_example.cka', -t 100 is the simulation time, -p 100 are the points that will be saved in the output file and -sync-t 1 is the synchronization time among compartments.
 
 ##ERRORS
 ExceptionDefn.Semantics_Error(_, "Rule name Transport 1 superman() at 1.393503 (2,1) is already used") 
