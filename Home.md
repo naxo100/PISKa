@@ -11,7 +11,7 @@ To install follow the nexts steps:
 
 As root
  
-* Install Opam (in Ubuntu 14.04)
+* Install Opam (in Ubuntu 14.04, for other OS visit http://opam.ocaml.org/doc/Install.html)
 
 `add-apt-repository ppa:avsm/ppa`
 
