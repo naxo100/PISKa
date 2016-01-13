@@ -190,7 +190,7 @@ Here we present a little and simple example of PISKa. It represent how an infect
     %link: 'highway' 'cityA' <-> 'cityB' $1
 
     #We define who can transport between cities and how often. In this case all persons
-    # can travel between cityA and cityB by the link 'highway', with a rate of 0.01
+    #can travel between cityA and cityB by the link 'highway', with a rate of 0.01
     %transport: 'highway' person() @ 0.01
 
     #We create an agent person with a site 's' (it can be any letter) with states 
