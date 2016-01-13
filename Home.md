@@ -180,7 +180,7 @@ You can find a more detailed description about kappa language here:
 http://www.kappalanguage.org/syntax.html
 
 ##Example
-Here we present a little and simple example of PISKa. It represent how an infection is spread in a population, with no control. This is a incomplete model, but it useful to understand how to implement something in PISKa. For a complete model visit here (PUT LINK TO A COMPLETE SIR MODEL).
+Here we present a little and simple example of PISKa. It represent how an infection is spread in a population, with no control. This is a incomplete model, but it useful to understand how to implement something in PISKa. For a complete model visit the folder PISKa/simulation/ in the source code.
 
     #We create 2 cities, the first with volume 1 and the second with volume 2
     %compartment: 'cityA' 1 
