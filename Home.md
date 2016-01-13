@@ -189,11 +189,12 @@ Here we present a little and simple example of PISKa. It represent how an infect
     #Here we create a bidirectional connection between cityA and cityB, with delay time 1
     %link: 'highway' 'cityA' <-> 'cityB' $1
 
-    #We define who can transport between cities and how often. In this case all persons can travel
-    #between cityA and cityB by the link 'highway', with a rate of 0.01
+    #We define who can transport between cities and how often. In this case all 
+    #persons can travel between cityA and cityB by the link 'highway', with a rate of 0.01
     %transport: 'highway' person() @ 0.01
 
-    #We create an agent person with a site 's' (it can be any letter) with states S (susceptible) and I (infected) 
+    #We create an agent person with a site 's' (it can be any letter) with states 
+    #S (susceptible) and I (infected) 
     %agent: person(s~S~I)
 
     #Rules
