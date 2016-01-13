@@ -179,7 +179,7 @@ You can find a more detailed description about kappa language here:
 
 http://www.kappalanguage.org/syntax.html
 
-and you can also read the KaSim manual [here](https://github.com/Kappa-Dev/KaSim/releases/download/v3.5-190914/KaSim_manual_3_5.pdf).
+and you can also read the KaSim manual [here in pdf](https://github.com/Kappa-Dev/KaSim/releases/download/v3.5-190914/KaSim_manual_3_5.pdf) or [here in html](http://dev.executableknowledge.org/docs/KaSim-manual-master/KaSim_manual.htm).
 
 ##Example
 Here we present a little and simple example of PISKa. It represent how an infection is spread in a population, with no control. This is a incomplete model, but it useful to understand how to implement something in PISKa. For a complete model visit the folder [PISKa/models/predator/](https://github.com/naxo100/PISKa/tree/master/models/predator) in the source code.
