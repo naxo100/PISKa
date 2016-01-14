@@ -36,7 +36,7 @@ Now, NOT as root
 
 This should produce PISKa binaries. You will need your own plotting program (like gnuplot) to visualize curves.
 
-If step 5 doesn't works (Error: Unbound module Mpi), you should change
+If `make` doesn't works (Error: Unbound module Mpi), you should change
 the path in the Makefile to aims to OCaml mpi, ie,
 
 `OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I PATH_TO_YOUR_OPAM_MPI/.opam/SOMETHING/lib/mpi  unix.cmxa mpi.cmxa str.cmxa #-p #-g -ccopt -g -ccopt -pg` 
