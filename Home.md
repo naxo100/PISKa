@@ -26,11 +26,11 @@ As root
 * aptitude install libopenmpi-dev
 
 Now, NOT as root
-*  Install OCaml, with opam init --comp 4.02.1
+*  Install OCaml, with `opam init --comp 4.02.1`
 
-* opam config env
+* `opam config env`
 
-* opam install mpi
+* `opam install mpi`
 
 * `make` in PISKa directory
 
