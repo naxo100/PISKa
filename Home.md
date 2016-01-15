@@ -72,11 +72,11 @@ and a matrix of 4x4 and each compartment of volume 1.5
 ###Link:
 The link is the connection among compartment, it can be unidirectional or bidirectional. To set an unidirectional link among two compartments we write
 
-`%link: 'link_name' 'compartmentA' -> 'compartmentB' $1`
+`%link: 'link_name' 'compartmentA' -> 'compartmentB' $ 1`
 
 where only the agents presents in 'compartmentA' can travel to 'compartmentB' with a delay time of 1. We can assume the delay time among compartment as the travel time. To set a bidirectional link we write
 
-`%link: 'link_name' 'compartmentA' <-> 'compartmentB' $1`
+`%link: 'link_name' 'compartmentA' <-> 'compartmentB' $ 1`
 
 where agents in both compartment can move in any direction.
 
@@ -85,7 +85,7 @@ where agents in both compartment can move in any direction.
 ###Transport:
 The transport defines a rate of agents per unit of time traveling in a link. To set a rate of 1.3 to agent 'agentA()' in a link called 'link_name' we write
 
-`%transport: 'link_name' agentA() @1.3`
+`%transport: 'link_name' agentA() @ 1.3`
 
 and if we want to move joints or separated agents we write
 
