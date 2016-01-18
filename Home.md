@@ -93,7 +93,7 @@ and if we want to move joints or separated agents we write
 
 `%transport: <move-free> 'link_name' agentB() @ 0.7`
 
-where agentA will move with any agent join to it and agentB will separate and move alone.
+where agentA will move with any agent join to it and agentB will separate and move alone. If you don't use the <move-join/free> option, by default is <move-join> (CHECK)
 
 ###Use:
 The use instruction is to define the compartment that will be used, and set the initial conditions of it. If we want to initialize a compartment we write
