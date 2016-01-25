@@ -19,11 +19,13 @@ As root
 
     `apt-get install ocaml ocaml-native-compilers camlp4-extra opam m4`
 
-* aptitude install libopenmpi1.6
+* and now the nexts packages 
 
-* aptitude install openmpi-bin
+ `aptitude install libopenmpi1.6`
 
-* aptitude install libopenmpi-dev
+ `aptitude install openmpi-bin`
+
+ `aptitude install libopenmpi-dev`
 
 Now, NOT as root
 *  Install OCaml, with `opam init --comp 4.02.1`
