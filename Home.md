@@ -105,6 +105,13 @@ The use instruction is to define the compartment that will be used, and set the 
 
 where we initialize the compartmentA with 100 agents of name 'agentA()'. The instruction must go immediately after the instruction %use.
 
+If the agents are initialized with no states in its sites, the default state will be the first define state. For example:
+
+    %agent: person(c~S~I)
+    %use: 'compartment1'
+    %init: 300 person()
+
+will create 300 agent 'person' in state 'S', the first define state.
 
 ###Fixed rates in rules
 If you want to fix a rate, ie, you don't want it depends on the volume of a compartment, you use `@*`, for instance
