@@ -230,6 +230,4 @@ where -n 2 is the number of cities (and processors where it will run), -i is the
 
 ##ERRORS
 ExceptionDefn.Semantics_Error(_, "Rule name Transport 1 superman() at 1.393503 (2,1) is already used") 
-If this happens, the agent traveling by the link will be destroyed, so now there is one less agent.
-lo que pasa es que los  transportes que tienen tiempo distinto de 0 (fijado en el link con $x) generan perturbaciones y cada una lleva un nombre, y no debieran poder repetirse
-pero al parecer ocurren tantos transportes por unidad de tiempo que algunos están ocurriendo incluso en el mismo instante
+If this happens, the agent traveling by the link will be destroyed, so now there is one less agent. Should be fixed.
