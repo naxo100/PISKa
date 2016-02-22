@@ -59,7 +59,7 @@ Type:
 
 for a complete list of options.
 
-##New functionality regard KaSim:
+##New functionality with regard to KaSim:
 
 ###Compartment: 
 To create a compartment of name 'compartmentA' and volume 1 we write:
