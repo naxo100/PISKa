@@ -179,9 +179,11 @@ this will show in a column the numbers of agents with name agentA and site c in 
 
 and it will display two columns with the respective number of agents in its respective states.
 
-###Modifications (kind of scripting)
+###Perturbation language (Modifications, kind of scripting)
 
 `%mod:` 
+
+In [this link](http://dev.executableknowledge.org/docs/KaSim-manual-master/KaSim_manual.htm#x1-400006) there is a very detailed description of the perturbation language.
 
 
 You can find a more detailed description about kappa language here:
