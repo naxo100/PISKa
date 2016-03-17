@@ -401,7 +401,10 @@ let eval_use compartments use_expressions =
 			match use_expr_opt with
 			| None -> [] :: cells_list
 			| Some use_expr -> (List.fold_right (fun ((cname,pos),indexlist_expr,cond_opt) cells ->
-					let _,dims,_,_ = List.assoc cname compartments in
+					let _,dims,_,_ = 
+						try List.assoc cname compartments 
+						with Not_found -> raise (ExceptionDefn.Semantics_Error (pos,"No compartment with name "^cname^" has been delcared."))
+					in
 					(cname, (index_expr_to_cells indexlist_expr cond_opt dims)) :: cells
 				) use_expr []) :: cells_list
 		) use_expressions []
