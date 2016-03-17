@@ -334,8 +334,11 @@ let eval_compartments compartments =
 let eval_links compartments links =
 	Hashtbl.fold (fun lname 
 			( ((c1 , pos_c1) , index_expr1, cond1) , ((c2 , pos_c2) , index_expr2, cond2) , is_bidirectional , time , pos ) links ->
-		let total1,dims1,_,_ = List.assoc c1 compartments
-		and total2,dims2,_,_ = List.assoc c2 compartments in
+		let total1,dims1,_,_ = try List.assoc c1 compartments
+			with Not_found -> raise (ExceptionDefn.Semantics_Error (pos_c1,"No compartment with name "^c1^" has been delcared."))
+		and total2,dims2,_,_ = try List.assoc c2 compartments 
+			with Not_found -> raise (ExceptionDefn.Semantics_Error (pos_c2,"No compartment with name "^c2^" has been delcared."))
+		in
 		let val1,var_order1 = partial_eval_indexlist ~dims:dims1 index_expr1
 		and val2,var_order2 = partial_eval_indexlist ~dims:dims2 index_expr2 in
 		let func_get_links = (
