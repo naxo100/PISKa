@@ -413,6 +413,17 @@ let eval_use compartments use_expressions =
 		) use_expressions []
 	)
 
+let is_in_use_expr cname cnum use_id use_cells =
+	try 
+		let cells = use_cells.(use_id) in
+		match cells with
+			| [] -> true
+			| cells_list ->
+				List.exists (fun cell -> cell = cnum) (List.assoc cname cells_list)
+	with 
+	| Not_found -> false
+	| Invalid_argument _ -> true
+
 
 (** Eval result obtained from parse files and returns a list
  * of Ast.compil for being reevaluated in each compartment. *)
@@ -423,6 +434,8 @@ let initialize_glob result_glob =
 	let result_links = eval_links total_comparts result_glob.Ast.links in
 	
 	let use_cells = eval_use total_comparts result_glob.Ast.use_expressions in
+	
+	let is_in_use_expr cname cnum use_id = is_in_use_expr cname cnum use_id use_cells in
 	
 	let is_in_use_expr cname cnum use_id =
 		try 
