@@ -68,6 +68,7 @@ rule token = parse
 									| "$UPDATE" -> (ASSIGN2 pos)
 									| "$PRINT" -> (PRINT pos)
 									| "$PRINTF" -> (PRINTF pos)
+									| "$ALL"	-> (ALL pos)
 									| s -> return_error None lexbuf ("Perturbation effect \""^s^"\" is not defined")
 					 			}
 (***)
@@ -91,7 +92,7 @@ rule token = parse
 			| "[" blank* "pi" blank* "]" { FLOAT (3.14159265,(position lexbuf))}
 
 			| "[" blank* "max" blank* "]" { MAX (position lexbuf) }
-			| "[" blank* "min" blank* "]" { MAX (position lexbuf) }
+			| "[" blank* "min" blank* "]" { MIN (position lexbuf) }
 			| "[" blank* "Emax" blank* "]" { EMAX (position lexbuf)}
 			| "[" blank* "Tmax" blank* "]" { TMAX (position lexbuf)}
 			(***)
