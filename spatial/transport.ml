@@ -149,7 +149,7 @@ let pert_of_transport_string agent_str num arr_time counter from env =
 			Dynamics.stopping_time = None;
 		}
 	in
-		(Some (p_id,pert), Some (Some rule,effect), env)
+		(Some (p_id,pert), Some rule, env)
 	end
 	with
 	| ex -> Debug.tag (Printf.sprintf "ERROR-> Transport %d %s at %.6f (%d)"
@@ -275,11 +275,8 @@ let add_perturbations (pert_list,rule_list) state =
 			IntMap.add p_id pert perts
 		) (state.State.perturbations) pert_list
 	and rules,_ =
-		List.fold_left (fun (rs,i) (r_opt,e) ->
-			match r_opt with 
-			| None -> rs,i
-			| Some r ->
-				Hashtbl.add rs (r.Dynamics.r_id) r; rs,i+1
+		List.fold_left (fun (rs,i) r ->
+			Hashtbl.add rs (r.Dynamics.r_id) r; rs,i+1
 		) (state.State.rules, Hashtbl.length state.State.rules) rule_list
 	in
 	{state with State.rules=rules; State.perturbations = perts}
