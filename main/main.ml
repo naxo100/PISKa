@@ -11,7 +11,7 @@ open Communication
 
 (***)
 
-let version = "1.2"
+let version = "1.3"
 let kasim_version = "3.5-160514"
 
 let usage_msg = "PISKa "^version^" (based on KaSim version "^kasim_version^"): \n"^"Usage is $ [mpirun* -np n_comparts] PISKa -i input_file [-e events] -t time [-p points] -sync-t s_time\n" (*^ "process number:"^(string_of_int myrank)*)
@@ -33,7 +33,7 @@ let main =
 			"Number of total simulation events, including null events (negative value for unbounded simulation)");
 		(***)("-t", Arg.Float(fun t -> Parameter.maxTimeValue := Some t (*; Parameter.maxEventValue := None*)), "Max time of simulation (arbitrary time unit)");
 		("-p", Arg.Int (fun i -> Parameter.plotModeOn := true ; Parameter.pointNumberValue:= Some i), "Number of points in plot");
-		("-o", Arg.String (fun s -> Parameter.outputDataName:=s ), "prefix for file name of data output (setted to PrefixComp_name[index].out") ;
+		("-o", Arg.String (fun s -> Parameter.outputDataName:=s ), "prefix for file name of data output (set to PrefixComp_name[index].out") ;
 		("-d", 
 		Arg.String 
 			(fun s -> 
@@ -115,7 +115,7 @@ let main =
 		in
 		
 		let compils =
-			if  myrank = 0 then 
+			if myrank = 0 && List.length !Parameter.inputKappaFileNames > 0 && !Parameter.marshalizedInFile="" then 
 				let result_g = 
 					Ast.init_compil_glob() ;
 					List.iter (fun fic -> let _ = KappaLexer.compile fic in ()) !Parameter.inputKappaFileNames ;
@@ -143,10 +143,8 @@ let main =
 					let d = open_in_bin marshalized_file 
 					in begin
 						if myrank = 0 then 
-							if !Parameter.inputKappaFileNames <> [] then 
-								Printf.printf "+ Loading simulation package %s (kappa files are ignored)...\n" marshalized_file 
-							else 
-								Printf.printf "+Loading simulation package %s...\n" marshalized_file ;
+							Printf.printf "+Loading simulation package %s...\n" marshalized_file ;
+								
 						let sim_pack_arr = 
 							if myrank = 0 then begin
 								let pack = (Marshal.from_channel d : 
@@ -159,9 +157,51 @@ let main =
 						in
 						Pervasives.close_in d ;
 						check_mpi_processes 0 "Mpi options: Ok";
-						let comp_id,dims,env,state = scatter sim_pack_arr 0 comm_world in
+						let (cname,cnum),dims,env,state = scatter sim_pack_arr 0 comm_world 
+						and perts,use_expressions =
+							if myrank = 0 && List.length !Parameter.inputKappaFileNames > 0 then begin
+								print_string "+Loading configuration files (only '%mod' and '%use' statements are considered)\n" ;
+								Ast.init_compil_glob() ;
+								List.iter (fun fic -> let _ = KappaLexer.compile fic in ()) !Parameter.inputKappaFileNames ;
+								broadcast (!Ast.result_glob.perturbations_g,!Ast.result_glob.use_expressions) 0 comm_world
+							end
+							else
+								broadcast ([],[]) 0 comm_world
+						in
+						let compartments = Array.fold_right (fun (cname,d) comps ->
+								if List.mem (cname,d) comps then comps
+								else (cname,d) :: comps
+							) 
+							(allgather (cname,(None,dims,None,None)) comm_world) [] 
+						in
+						let use_cells = Spatial_eval.eval_use compartments use_expressions in
+						(* filtering *)
+						let perts = List.fold_left (fun p_list (pert,use_id) ->
+								if Spatial_eval.is_in_use_expr cname cnum use_id use_cells then
+									pert::p_list
+								else p_list
+							) [] perts
+						in
+						let (kappa_vars, pert, rule_pert, env) = 
+							Ast.init_compil();
+							Eval.pert_of_result 
+								(Array.fold_right (fun mixt_opt k_vars -> 
+									match mixt_opt with
+										| None -> k_vars
+										| Some mixt -> mixt :: k_vars 
+								) state.State.kappa_variables []) 
+								env {!Ast.result with Ast.perturbations = perts}
+						in
+						let perts = List.mapi (fun index p -> 
+								(IntMap.size state.State.perturbations)+index+1,p
+							) pert
+						in
+						let env = Environment.init_roots_of_nl_rules env in
+						let state = Transport.add_perturbations (perts, rule_pert) state in
+						let state,env = Communication.update_state state env counter in
+						check_mpi_processes 0 "Mpi options: Ok";
 						if myrank = 0 then Printf.printf "Done\n" ;
-						comp_id,dims,env,state 
+						(cname,cnum),dims,env,state 
 					end
 				with
 				| exn ->

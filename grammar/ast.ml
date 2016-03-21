@@ -176,9 +176,9 @@ type compil = {variables : variable list; (*pattern declaration for reusing as v
 							 dims: 		int list;
 							 (***)
 							 }
-(*
-let result:compil ref = ref {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = []; volumes=[]} 
-let init_compil = fun _ -> result := {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = [] ; volumes=[]}*)
+
+let result:compil ref = ref {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = []; volume=INT (1,Tools.no_pos); dims = []} 
+let init_compil = fun _ -> result := {variables=[] ; signatures=[] ; rules=[] ; init = [] ; observables = [] ; perturbations = [] ; configurations = [] ; tokens = [] ; volume=INT (1,Tools.no_pos); dims = []}
 
 
 type compil_glob = {compartments: (string, index_expr * alg_expr * Tools.pos) Hashtbl.t;
