@@ -939,6 +939,11 @@ let pert_of_result variables env res =
 						match effect with
 						| Dynamics.INTRO (_,mix) ->
 							begin
+								(***)
+								let str_pert =
+									(Printf.sprintf "whenever %s introduce ? * %s" str_pre (Mixture.to_kappa false mix env))
+								in
+								(***)
 								let (env, id) =
 									Environment.declare_var_kappa (Some (str_pert,pos)) env 
 								in
