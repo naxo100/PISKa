@@ -45,6 +45,11 @@ the path in the Makefile to aims to OCaml mpi, ie,
 
 and run `make` again.
 
+If you are reinstalling just run:
+
+* `opam config env`
+* `make` in PISKa directory
+
 ## Usage
 
 In order to run a simulation of 1000 rule applications of 2 compartment, type
