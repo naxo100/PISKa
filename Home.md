@@ -50,6 +50,10 @@ If you are reinstalling just run:
 * `opam config env`
 * `make` in PISKa directory
 
+Now that PISKa is working you can put it in /usr/bin/ directory, so, as root:
+
+`cp PISKa /usr/bin/`
+
 ## Usage
 
 In order to run a simulation of 1000 rule applications of 2 compartment, type
