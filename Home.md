@@ -122,6 +122,19 @@ If the agents are initialized with no states in its sites, the default state wil
 
 will create 300 agent 'person' in state 'S', the first define state.
 
+
+###Precompiled binaries files
+PISKa is able to create precompiled files to run faster simulations, saving time in system initialization. In this way you create a precompiled file, then load this file and change only parameters of interest. To create a precompiled file you should use the `-make-sim` option, and to load `-load-sim`.
+example:
+
+`mpirun -n 2 PISKa -i piskaFile.cka -make-sim precomp_file.out`
+
+where `precomp_file.out` is the precompiled binary file. Then, to load we use
+
+`mpirun -n 2 PISKa -i piskaFile.cka -t 1000 -p 1000 -sync-t 1 -load-sim precomp_file.out`
+
+in this way the system will not initialize again, saving that time. Using this option you can save about 20% of simulation time, depending on your model.
+
 ###Fixed rates in rules
 If you want to fix a rate, ie, you don't want it depends on the volume of a compartment, you use `@*`, for instance
 
