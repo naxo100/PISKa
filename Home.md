@@ -262,3 +262,5 @@ where -n 2 is the number of cities (and processors where it will run), -i is the
 ##ERRORS
 ExceptionDefn.Semantics_Error(_, "Rule name Transport 1 superman() at 1.393503 (2,1) is already used") 
 If this happens, the agent traveling by the link will be destroyed, so now there is one less agent. Should be fixed.
+
+When reading parameters of a perturbation the program will freeze if there is a ";" at the end. There is no, still, warning message about this.
