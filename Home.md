@@ -131,9 +131,11 @@ example:
 
 where `precomp_file.out` is the precompiled binary file. Then, to load we use
 
-`mpirun -n 2 PISKa -i piskaFile.cka -t 1000 -p 1000 -sync-t 1 -load-sim precomp_file.out`
+`mpirun -n 2 PISKa -t 1000 -p 1000 -sync-t 1 -load-sim precomp_file.out`
 
-in this way the system will not initialize again, saving that time. Using this option you can save about 20% of simulation time, depending on your model.
+in this way the system will not initialize again, saving that time. Using this option you can save about 20% of simulation time, depending on your model. Now, if you want to change some parameters of the precompiled file, you can create a perturbation file `parameters.cka`, and use it in this way
+
+`mpirun -n 2 PISKa -t 1000 -p 1000 -sync-t 1 -load-sim precomp_file.out -i parameters.cka`
 
 ###Fixed rates in rules
 If you want to fix a rate, ie, you don't want it depends on the volume of a compartment, you use `@*`, for instance
