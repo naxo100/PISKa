@@ -29,7 +29,7 @@ This should produce PISKa binaries. You will need your own plotting program (lik
 
 In order to run a simulation of 100 time units, type
 
-`mpirun -n **num-of-compartments** PISKa -i skappa_file -t 100 -p 1000 -sync-t 0.5 -o data_file`
+`mpirun -n 'num-of-compartments' PISKa -i skappa_file -t 100 -p 1000 -sync-t 0.5 -o data_file`
 
 This will produce several (one for each compartment) data files of 1000 point (-p option) containing the trajectory that was produced during the simulation with synchronization step of 0.5 time units (ie. 200 synchronizations).
 
