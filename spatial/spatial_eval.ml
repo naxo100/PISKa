@@ -515,7 +515,7 @@ let initialize_glob result_glob =
 					let fresh_id = ref 0 in
 					List.fold_left (fun trans_list ( (lname,_), mixt, trans_rate, joined, pos ) -> (*iter transports*)
 						(*TODO match fixed rates*)
-						let scaled_trans_rate = Ast.DIV(trans_rate,vol,Tools.no_pos) in
+						let scaled_trans_rate = trans_rate in (*Ast.DIV(trans_rate,vol,Tools.no_pos) in*)
 						List.fold_left (fun t_link_list (func_get_links,travel) -> (*iter links 'lname'*)
 							let dest_cells = func_get_links cname cnum in
 							let length_dest_ast = Ast.FLOAT (float_of_int (cell_list_length dest_cells),Tools.no_pos) in
