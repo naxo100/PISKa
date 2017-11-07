@@ -85,7 +85,7 @@ let pert_of_transport_string agent_str num arr_time counter from env =
 		None,None,env
 	else begin
 	let agent,env = Eval.mixture_of_ast None false env (string_to_astmixt agent_str) in
-	let str_pert = Printf.sprintf "Transport %d %s at %.6f (%d,%d)" 
+	let str_pert = Printf.sprintf "Transport %d %s at %.15f (%d,%d)" 
 		num (Mixture.to_kappa false agent env) arr_time (Counter.get_sync_count counter) from in
 	(*Debug.tag (Printf.sprintf "%d: %s"  (Mpi.comm_rank Mpi.comm_world) (Mixture.to_kappa false agent env));*)
 	let env,p_id = Environment.declare_pert (str_pert,Tools.no_pos) env in
