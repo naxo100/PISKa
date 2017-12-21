@@ -568,7 +568,7 @@ let initialize_glob result_glob =
 	
 	List.fold_right ( fun (vol,init_t,pos,use_id) result_list ->
 		match init_t with
-		| Ast.INIT_MIX (expr,mixt) -> 
+		| Ast.INIT_MIX (expr,_) |  Ast.INIT_TOK (expr,_) -> 
 			let cells_len = 
 				let len = List.fold_right (fun (_,cells) n -> n + List.length cells ) use_cells.(use_id) 0 in
 				match len with
@@ -584,19 +584,21 @@ let initialize_glob result_glob =
   			let rest = value mod cells_len in
 			let result_list,_ = List.fold_right (fun ((cname,cnum),result_ast) (new_result_list,distr) ->
 				if is_in_use_expr cname cnum use_id then
-					if cells_len > 1 then
+					(*if cells_len > 1 then*)
 						let new_int_expr = Ast.INT (value / cells_len + (if List.hd distr then 1 else 0) , pos) in
-						let new_result = {result_ast with Ast.init = (vol,Ast.INIT_MIX (new_int_expr,mixt), pos) :: result_ast.Ast.init}
+						let init_elem = match init_t with 
+							| Ast.INIT_MIX (_,mixt) -> Ast.INIT_MIX (new_int_expr,mixt)
+							| Ast.INIT_TOK (_,tok) -> Ast.INIT_TOK (new_int_expr,tok)
+						in
+						let new_result = {result_ast with Ast.init = (vol,init_elem, pos) :: result_ast.Ast.init}
 						in (((cname,cnum), new_result ) :: new_result_list ), List.tl distr
-					else
+					(*else
 						let new_result = {result_ast with Ast.init = (vol,Ast.INIT_MIX (expr,mixt),pos) :: result_ast.Ast.init}
-						in (((cname,cnum), new_result ) :: new_result_list) , distr 
+						in (((cname,cnum), new_result ) :: new_result_list) , distr *)
 				else
 					(((cname,cnum),result_ast ) :: new_result_list) , distr
 			) result_list ([],Spatial_util.distribute cells_len rest)
 			in result_list
-		| Ast.INIT_TOK (expr,tok) -> 
-			result_list
 	) result_glob.Ast.init_g result_list
 	
 
