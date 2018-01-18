@@ -317,6 +317,9 @@ let is_in_cell_list cname cnum cell_list =
 (** Eval Ast.result_glob.compartments
  * and return a list of (name, (total, dims, vol, pos)) *)
 let eval_compartments compartments = 
+	if Hashtbl.length compartments = 0 then
+		 ("Volume",(1,[1],Ast.FLOAT (1.0,Tools.no_pos),Tools.no_pos)) :: []
+	else
 	Hashtbl.fold (fun cname (index,vol,pos) comparts ->
 		let total,dimensions = List.fold_right (fun index_term (tot,dim) ->
 			let value,_ = partial_eval_index index_term
@@ -410,7 +413,7 @@ let eval_use compartments use_expressions =
 					in
 					(cname, (index_expr_to_cells indexlist_expr cond_opt dims)) :: cells
 				) use_expr []) :: cells_list
-		) use_expressions []
+		) use_expressions [ [] ]
 	)
 
 let is_in_use_expr cname cnum use_id use_cells =
@@ -567,29 +570,47 @@ let initialize_glob result_glob =
 	let (temp_env, kappa_vars, alg_vars) = Eval.variables_of_result temp_env first_res_ast in
 	
 	List.fold_right ( fun (vol,init_t,pos,use_id) result_list ->
+		let cells_len = 
+			let len = List.fold_right (fun (_,cells) n -> n + List.length cells ) use_cells.(use_id) 0 in
+			match len with
+				| 0 -> total_cells
+				| n -> n
+		in
 		match init_t with
-		| Ast.INIT_MIX (expr,_) |  Ast.INIT_TOK (expr,_) -> 
-			let cells_len = 
-				let len = List.fold_right (fun (_,cells) n -> n + List.length cells ) use_cells.(use_id) 0 in
-				match len with
-					| 0 -> total_cells
-					| n -> n
-			in
+		| Ast.INIT_MIX (expr,mixt) -> 
 			let (v, is_const, opt_v, dep, lbl) = Eval.partial_eval_alg temp_env expr in
 			let value = 
 				match opt_v with
 					| Some v -> Num.int_of_num v
 					| None -> raise (ExceptionDefn.Semantics_Error (pos, Printf.sprintf "%s is not a constant, cannot initialize graph." lbl))
-  			in
-  			let rest = value mod cells_len in
+			in
+			let rest = value mod cells_len in
 			let result_list,_ = List.fold_right (fun ((cname,cnum),result_ast) (new_result_list,distr) ->
 				if is_in_use_expr cname cnum use_id then
 					(*if cells_len > 1 then*)
 						let new_int_expr = Ast.INT (value / cells_len + (if List.hd distr then 1 else 0) , pos) in
-						let init_elem = match init_t with 
-							| Ast.INIT_MIX (_,mixt) -> Ast.INIT_MIX (new_int_expr,mixt)
-							| Ast.INIT_TOK (_,tok) -> Ast.INIT_TOK (new_int_expr,tok)
-						in
+						let init_elem = Ast.INIT_MIX (new_int_expr,mixt) in
+						let new_result = {result_ast with Ast.init = (vol,init_elem, pos) :: result_ast.Ast.init}
+						in (((cname,cnum), new_result ) :: new_result_list ), List.tl distr)
+					(*else
+						let new_result = {result_ast with Ast.init = (vol,Ast.INIT_MIX (expr,mixt),pos) :: result_ast.Ast.init}
+						in (((cname,cnum), new_result ) :: new_result_list) , distr *)
+				else
+					(((cname,cnum),result_ast ) :: new_result_list) , distr
+			) result_list ([],Spatial_util.distribute cells_len rest)
+			in result_list
+		| Ast.INIT_TOK (expr,tok) ->
+			let (v, is_const, opt_v, dep, lbl) = Eval.partial_eval_alg temp_env expr in
+			let value = 
+				match opt_v with
+					| Some v -> Num.float_of_num v
+					| None -> raise (ExceptionDefn.Semantics_Error (pos, Printf.sprintf "%s is not a constant, cannot initialize graph." lbl))
+			in
+			let result_list,_ = List.fold_right (fun ((cname,cnum),result_ast) (new_result_list,distr) ->
+				if is_in_use_expr cname cnum use_id then
+					(*if cells_len > 1 then*)
+						let new_flt_expr = Ast.FLOAT (value /. (float_of_int cells_len) , pos) in
+						let init_elem = Ast.INIT_TOK (new_flt_expr,tok) in
 						let new_result = {result_ast with Ast.init = (vol,init_elem, pos) :: result_ast.Ast.init}
 						in (((cname,cnum), new_result ) :: new_result_list ), List.tl distr
 					(*else
@@ -597,7 +618,7 @@ let initialize_glob result_glob =
 						in (((cname,cnum), new_result ) :: new_result_list) , distr *)
 				else
 					(((cname,cnum),result_ast ) :: new_result_list) , distr
-			) result_list ([],Spatial_util.distribute cells_len rest)
+			) result_list ([],Spatial_util.distribute cells_len 0)
 			in result_list
 	) result_glob.Ast.init_g result_list
 	
