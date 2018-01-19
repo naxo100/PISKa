@@ -591,7 +591,7 @@ let initialize_glob result_glob =
 						let new_int_expr = Ast.INT (value / cells_len + (if List.hd distr then 1 else 0) , pos) in
 						let init_elem = Ast.INIT_MIX (new_int_expr,mixt) in
 						let new_result = {result_ast with Ast.init = (vol,init_elem, pos) :: result_ast.Ast.init}
-						in (((cname,cnum), new_result ) :: new_result_list ), List.tl distr)
+						in (((cname,cnum), new_result ) :: new_result_list ), List.tl distr
 					(*else
 						let new_result = {result_ast with Ast.init = (vol,Ast.INIT_MIX (expr,mixt),pos) :: result_ast.Ast.init}
 						in (((cname,cnum), new_result ) :: new_result_list) , distr *)
