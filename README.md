@@ -17,12 +17,40 @@ To install you need the ocaml native compiler. To check whether you have it, typ
 
 `ocamlopt.opt -version` 
 
-Ocaml installation tutorial can be found on its [official website](https://ocaml.org/). You will also need the [ocamlmpi library](https://forge.ocamlcore.org/projects/ocamlmpi/) and an MPI framework like [OpenMPI](https://www.open-mpi.org/) for compliation and for running simulations. It is recomended that you install both ocaml and libraries using Opam. To learn about how to do this please visit the [wiki](https://github.com/naxo100/PISKa/wiki) of this repository.
+Ocaml installation tutorial can be found on its [official website](https://ocaml.org/).
+Or in ubuntu and other systems:
 
-To create PISKa binaries, simply type 
+`sudo apt-get install opam`
+`opam init`
+
+You will also need the [ocamlmpi library](https://forge.ocamlcore.org/projects/ocamlmpi/) and an MPI framework like [OpenMPI](https://www.open-mpi.org/) for compliation and for running simulations. It is recomended that you install both ocaml and libraries using Opam. 
+
+`sudo apt-get install libopenmpi-dev`
+
+openmpi is installed by default in several systems. (update) ocamlmpi is no longer supported by opam, you will need to install manually:
+
+`git clone https://github.com/xavierleroy/ocamlmpi.git`
+`cd ocamlmpi`
+
+Maybe at this step you need to edit Makefile to change the value of MPIINCDIR to your mpi library implemnetation folder. For example:
+`MPIIINCDIR=/usr/include/openmpi`
+
+Then you can generate binaries and install:
 
 `make`
+`make opt`
+`sudo make install`
 
+To create PISKa binaries and install, simply type 
+
+`git clone https://github.com/naxo100/PISKa.git`
+`cd PISKa`
+`make`
+`sudo make install`
+
+If make fails, it's probably because it cannot find ocamlmpi lib. Open Makefile and edit the folder of ocampi (find the line that says `OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I \`ocamlfind query mpi\`, edit the part).
+
+To learn more about installation please visit the [wiki](https://github.com/naxo100/PISKa/wiki) of this repository.
 This should produce PISKa binaries. You will need your own plotting program (like gnuplot) to visualize curves.
 
 ## Usage
