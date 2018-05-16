@@ -15,13 +15,13 @@ It is recomended to first read the pdf of KaSim reference manual (available [her
 
 To install you need the ocaml native compiler. To check whether you have it, type 
 
-`ocamlopt.opt -version` 
+`$ ocamlopt.opt -version` 
 
 Ocaml installation tutorial can be found on its [official website](https://ocaml.org/).
 Or in ubuntu and other systems:
 
-`sudo apt-get install opam`
-`opam init`
+`$ sudo apt-get install opam
+$ opam init`
 
 You will also need the [ocamlmpi library](https://forge.ocamlcore.org/projects/ocamlmpi/) and an MPI framework like [OpenMPI](https://www.open-mpi.org/) for compliation and for running simulations. It is recomended that you install both ocaml and libraries using Opam. 
 
