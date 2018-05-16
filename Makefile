@@ -51,7 +51,7 @@ OCAMLLEX = $(OCAMLBINPATH)ocamllex
 OCAMLYACC = $(OCAMLBINPATH)ocamlyacc
 OCAMLC = $(OCAMLBINPATH)ocamlc -I unix.cma mpi.cma # 
 #`$(OCAMLC) -where`/../mpi
-OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I `$(OCAMLC) -where`/../mpi  unix.cmxa mpi.cmxa str.cmxa #-p #-g -ccopt -g -ccopt -pg
+OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I `ocamlfind query mpi`  unix.cmxa mpi.cmxa str.cmxa #-p #-g -ccopt -g -ccopt -pg
 OCAMLDEP = $(OCAMLBINPATH)ocamldep unix.cma mpi.cma 
 CC = mpicc.openmpi
 
