@@ -20,35 +20,42 @@ To install you need the ocaml native compiler. To check whether you have it, typ
 Ocaml installation tutorial can be found on its [official website](https://ocaml.org/).
 Or in ubuntu and other systems:
 
-`$ sudo apt-get install opam
-$ opam init`
+`$ sudo apt-get install opam`
+
+`$ opam init`
 
 You will also need the [ocamlmpi library](https://forge.ocamlcore.org/projects/ocamlmpi/) and an MPI framework like [OpenMPI](https://www.open-mpi.org/) for compliation and for running simulations. It is recomended that you install both ocaml and libraries using Opam. 
 
-`sudo apt-get install libopenmpi-dev`
+`$ sudo apt-get install libopenmpi-dev`
 
 openmpi is installed by default in several systems. (update) ocamlmpi is no longer supported by opam, you will need to install manually:
 
-`git clone https://github.com/xavierleroy/ocamlmpi.git`
-`cd ocamlmpi`
+`$ git clone https://github.com/xavierleroy/ocamlmpi.git`
+
+`$ cd ocamlmpi`
 
 Maybe at this step you need to edit Makefile to change the value of MPIINCDIR to your mpi library implemnetation folder. For example:
 `MPIIINCDIR=/usr/include/openmpi`
 
 Then you can generate binaries and install:
 
-`make`
-`make opt`
-`sudo make install`
+`$ make`
+
+`$ make opt`
+
+`$ sudo make install`
 
 To create PISKa binaries and install, simply type 
 
-`git clone https://github.com/naxo100/PISKa.git`
-`cd PISKa`
-`make`
-`sudo make install`
+`$ git clone https://github.com/naxo100/PISKa.git`
 
-If make fails, it's probably because it cannot find ocamlmpi lib. Open Makefile and edit the folder of ocampi (find the line that says `OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I \`ocamlfind query mpi\`, edit the part).
+`$ cd PISKa`
+
+`$ make`
+
+`$ sudo make install`
+
+If make fails, it's probably because it cannot find ocamlmpi lib. Open Makefile and edit the folder of ocampi (find the line that says ```OCAMLOPT = $(OCAMLBINPATH)ocamlopt.opt -I \`ocamlfind query mpi\` ```, edit the last part).
 
 To learn more about installation please visit the [wiki](https://github.com/naxo100/PISKa/wiki) of this repository.
 This should produce PISKa binaries. You will need your own plotting program (like gnuplot) to visualize curves.
@@ -57,13 +64,13 @@ This should produce PISKa binaries. You will need your own plotting program (lik
 
 In order to run a simulation of 100 time units, type
 
-`mpirun -n 'num-of-compartments' PISKa -i skappa_file -t 100 -p 1000 -sync-t 0.5 -o data_file`
+`$ mpirun -n 'num-of-compartments' PISKa -i skappa_file -t 100 -p 1000 -sync-t 0.5 -o data_file`
 
 This will produce several (one for each compartment) data files of 1000 point (-p option) containing the trajectory that was produced during the simulation with synchronization step of 0.5 time units (ie. 200 synchronizations).
 
 Type:
 
-`PISKa --help` 
+`$ PISKa --help` 
 
 for a complete list of options.
 
